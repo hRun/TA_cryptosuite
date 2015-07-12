@@ -1,0 +1,3 @@
+[]
+access = read : [ can_encrypt, can_decrypt ], write : [ admin ]
+export = system
