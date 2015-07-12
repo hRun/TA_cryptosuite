@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#  Copyright 2011 Sybren A. Stüvel <sybren@stuvel.eu>
+#  Copyright 2011 Sybren A. StÃ¼vel <sybren@stuvel.eu>
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -32,13 +32,13 @@ __date__ = "2014-02-22"
 __version__ = '3.1.4'
 
 from rsa.key import newkeys, PrivateKey, PublicKey
-from rsa.pkcs1 import encrypt, decrypt, DecryptionError 
+from rsa.pkcs1 import encrypt_rand_padding, encrypt_zero_padding, decrypt, DecryptionError 
 
 # Do doctest if we're run directly
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
 
-__all__ = ["newkeys", "encrypt", "decrypt", 'PublicKey',
+__all__ = ["newkeys", "encrypt_rand_padding", "encrypt_zero_padding", "decrypt", 'PublicKey',
     'PrivateKey', 'DecryptionError']
 

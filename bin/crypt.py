@@ -25,7 +25,7 @@ class CryptCommand(StreamingCommand):
     """ 
     ##Syntax
 
-    crypt mode=<d|e> key=<file_path> [keyencryption=<boolean>] <field-list>
+    crypt mode=<d|e> key=<file_path> [keyencryption=<boolean> | randpadding=<boolean>] <field-list>
 
     ##Description
     
@@ -87,14 +87,20 @@ class CryptCommand(StreamingCommand):
     keyencryption = Option(
         doc='''
         **Syntax:** **keyencryption=***<true|false>*
-        **Description:** Algorithm to use for decrypting the private key''',
+        **Description:** Specify whether private key is encrypted or not''',
         require=False, validate=validators.Boolean())          
+
+    randpadding = Option(
+        doc='''
+        **Syntax:** **randpadding=***<true|false>*
+        **Description:** Use random padding while encrypting or not''',
+        require=False, validate=validators.Boolean())   
         
     def stream(self, records):     
       # Bind to current Splunk session
       #
       service = client.Service(token=self.input_header["sessionKey"])
-       
+      f = open('debug', 'r+') 
       # Get user objects
       #
       xml_doc = minidom.parseString(self.input_header["authString"])      
@@ -110,9 +116,8 @@ class CryptCommand(StreamingCommand):
       
       if re.match(r'-----BEGIN .* PUBLIC KEY-----', file_content) is None:
           if re.match(r'-----BEGIN .* PRIVATE KEY-----', file_content) is None:
-              raise RuntimeWarning('Currently only keys in PEM format are supported. Please specify a valid key file.')
-      #        In a future version:    
-      #        file_type = 'DER'
+              raise RuntimeWarning('Currently only keys in PEM format are supported. Please specify a valid key file.')  
+              # In a future version set file_type = 'DER' at this point
 
       
       # Handle encryption
@@ -129,31 +134,36 @@ class CryptCommand(StreamingCommand):
                           if re.match(r'can_encrypt', imported_role) is not None:
                               user_authorization = 1
                               
-          if user_authorization == 1:
-              if self.keyencryption is not None and re.match(r'(false|f|0|n|no)', str(self.keyencryption)) is not None:
-                  raise RuntimeWarning('Public keys usually are not encrypted. Remove argument keyencryption.')
-                  
+          if user_authorization == 1:                  
               # Decode key file's content
               #
               try:
                   enc = rsa.key.PublicKey.load_pkcs1(file_content, file_type)
               except:
                   raise RuntimeWarning('Invalid key file has been provided for encryption: %s. Check the provided values of \'key\' and \'keyencryption\'.' % self.key.name)
-              
+
               # Perform field encryption
               #
               for record in records:
                   for fieldname in self.fieldnames:
                       if fieldname.startswith('_'):
                           continue             
-                      try:             
-                          record[fieldname] = base64.encodestring(rsa.encrypt(record[fieldname], enc))
+                      try:
+                          # Do not use random padding for encryption
+                          #
+                          if not self.randpadding:
+                          #if re.match(r'(false|f|0|n|no)', str(self.randpadding)) is not None:                          
+                              record[fieldname] = base64.encodestring(rsa.encrypt_zero_padding(record[fieldname], enc))
+                          # Use random padding for encryption
+                          #
+                          else:                         
+                              record[fieldname] = base64.encodestring(rsa.encrypt_rand_padding(record[fieldname], enc))
                       except:
                           print 'Encryption failed: %s' % record[fieldname]
                   yield record
                   
           else:
-              raise RuntimeWarning('User \'%s\' is not authorized to perform decryption operations.' % str(current_user))
+              raise RuntimeWarning('User \'%s\' is not authorized to perform encryption operations.' % str(current_user))
            
                           
       # Handle decryption
@@ -216,5 +226,5 @@ class CryptCommand(StreamingCommand):
                        
       else:
           raise ValueError('Invalid mode has been set: %s' % mode)
-  
+      f.close()
 dispatch(CryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)

@@ -28,6 +28,10 @@ can be used to deduce where in the process the failure occurred. DO NOT PASS
 SUCH INFORMATION to your users.
 '''
 
+'''Modified by Harun Kuessner for correct function with the custom Splunk>
+   'crypt' command. Added methods for encryption without random padding.
+'''
+
 import os
 
 from rsa._compat import b
@@ -39,7 +43,7 @@ class CryptoError(Exception):
 class DecryptionError(CryptoError):
     '''Raised when decryption fails.'''
  
-def _pad_for_encryption(message, target_length):
+def _pad_random(message, target_length):
     r'''Pads the message for encryption, returning the padded message.
     
     :return: 00 02 RANDOM_DATA 00 MESSAGE
@@ -76,16 +80,53 @@ def _pad_for_encryption(message, target_length):
         new_padding = os.urandom(needed_bytes + 5)
         new_padding = new_padding.replace(b('\x00'), b(''))
         padding = padding + new_padding[:needed_bytes]
-    
+        
     assert len(padding) == padding_length
     
     return b('').join([b('\x00\x02'),
                     padding,
                     b('\x00'),
                     message])
-    
 
-def encrypt(message, pub_key):
+def _pad_zero(message, target_length):
+    r'''Pads the message for encryption, returning the padded message.
+    
+    :return: 00 02 ZERO_BYTES 00 MESSAGE
+
+    '''
+
+    max_msglength = target_length - 11
+    msglength = len(message)
+    
+    if msglength > max_msglength:
+        raise OverflowError('%i bytes needed for message, but there is only'
+            ' space for %i' % (msglength, max_msglength))
+    
+    # Get random padding
+    padding = b('')
+    padding_length = target_length - msglength - 3
+    
+    # We remove 0-bytes, so we'll end up with less padding than we've asked for,
+    # so keep adding data until we're at the correct length.
+    while len(padding) < padding_length:
+        needed_bytes = padding_length - len(padding)
+        
+        # Always read at least 8 bytes more than we need, and trim off the rest
+        # after removing the 0-bytes. This increases the chance of getting
+        # enough bytes, especially when needed_bytes is small
+        new_padding = b('\xff')
+        for i in range(1,needed_bytes):
+            new_padding = new_padding + b('\xff')
+        padding = padding + new_padding[:needed_bytes]
+        
+    assert len(padding) == padding_length
+    
+    return b('').join([b('\x00\x02'),
+                    padding,
+                    b('\x00'),
+                    message])   
+
+def encrypt_rand_padding(message, pub_key):
     '''Encrypts the given message using PKCS#1 v1.5
     
     :param message: the message to encrypt. Must be a byte string no longer than
@@ -108,7 +149,20 @@ def encrypt(message, pub_key):
     '''
     
     keylength = common.byte_size(pub_key.n)
-    padded = _pad_for_encryption(message, keylength)
+    padded = _pad_random(message, keylength)
+    
+    payload = transform.bytes2int(padded)
+    encrypted = core.encrypt_int(payload, pub_key.e, pub_key.n)
+    block = transform.int2bytes(encrypted, keylength)
+    
+    return block
+    
+def encrypt_zero_padding(message, pub_key):
+    '''Encrypts the given message without random padding    
+    '''
+    
+    keylength = common.byte_size(pub_key.n)
+    padded = _pad_zero(message, keylength)
     
     payload = transform.bytes2int(padded)
     encrypted = core.encrypt_int(payload, pub_key.e, pub_key.n)
