@@ -34,6 +34,9 @@ class CryptCommand(StreamingCommand):
     
     When setting `mode=e` encryption is specified.
     Fields provided by `field-list` are encrypted using the PEM key file provided by `key`.
+    When setting the optional parameter randpadding to false, random padding during field
+    encryption is disabled resulting in a unique cipher for each unique field value.
+    Otherwise encryption results in a unique cipher per event.
 
     When setting `mode=d` decryption is specified.
     Fields provided by `field-list` are decrypted using the PEM key file provided by `key`.   
@@ -100,7 +103,7 @@ class CryptCommand(StreamingCommand):
       # Bind to current Splunk session
       #
       service = client.Service(token=self.input_header["sessionKey"])
-      f = open('debug', 'r+') 
+
       # Get user objects
       #
       xml_doc = minidom.parseString(self.input_header["authString"])      
@@ -114,11 +117,8 @@ class CryptCommand(StreamingCommand):
       file_content = self.key.read()
       file_type = 'PEM'
       
-      if re.match(r'-----BEGIN .* PUBLIC KEY-----', file_content) is None:
-          if re.match(r'-----BEGIN .* PRIVATE KEY-----', file_content) is None:
-              raise RuntimeWarning('Currently only keys in PEM format are supported. Please specify a valid key file.')  
-              # In a future version set file_type = 'DER' at this point
-
+      if re.match(r'-----BEGIN .* KEY-----', file_content) is None:
+          raise RuntimeWarning('Currently only keys in PEM format are supported. Please specify a valid key file.')  
       
       # Handle encryption
       #
@@ -140,30 +140,29 @@ class CryptCommand(StreamingCommand):
               try:
                   enc = rsa.key.PublicKey.load_pkcs1(file_content, file_type)
               except:
-                  raise RuntimeWarning('Invalid key file has been provided for encryption: %s. Check the provided values of \'key\' and \'keyencryption\'.' % self.key.name)
+                  raise RuntimeWarning('Invalid key file has been provided for encryption.')
 
               # Perform field encryption
               #
               for record in records:
                   for fieldname in self.fieldnames:
-                      if fieldname.startswith('_'):
+                      if fieldname=='_time' or fieldname=='_raw':
                           continue             
                       try:
                           # Do not use random padding for encryption
                           #
-                          if not self.randpadding:
-                          #if re.match(r'(false|f|0|n|no)', str(self.randpadding)) is not None:                          
+                          if re.match(r'False', str(self.randpadding)):                          
                               record[fieldname] = base64.encodestring(rsa.encrypt_zero_padding(record[fieldname], enc))
                           # Use random padding for encryption
                           #
                           else:                         
                               record[fieldname] = base64.encodestring(rsa.encrypt_rand_padding(record[fieldname], enc))
                       except:
-                          print 'Encryption failed: %s' % record[fieldname]
+                          raise RuntimeWarning('Encryption failed for field: %s' % fieldname)
                   yield record
                   
           else:
-              raise RuntimeWarning('User \'%s\' is not authorized to perform encryption operations.' % str(current_user))
+              raise RuntimeWarning('User \'%s\' is not authorized to perform field encryption.' % str(current_user))
            
                           
       # Handle decryption
@@ -199,7 +198,7 @@ class CryptCommand(StreamingCommand):
                           read_password = lambda *args: str(password)
                           dec = M2Crypto.RSA.load_key(self.key.name, read_password)
                   if got_password == 0:
-                      raise ValueError('No password associated with the provided key file for this user has been found. Set a valid password in the app\'s set up screen.')
+                      raise ValueError('No password associated with the specified key file has been set for user \'%s\'.' % str(current_user))
           
               else:
                   # Decode unencrypted key file's content
@@ -207,24 +206,23 @@ class CryptCommand(StreamingCommand):
                   try:
                       dec = M2Crypto.RSA.load_key(self.key.name)
                   except:
-                      raise RuntimeWarning('Invalid key file has been provided for decryption: %s. Check the provided values of \'key\' and \'keyencryption\'.' % self.key.name)
+                      raise RuntimeWarning('Invalid or encrypted key file has been provided for decryption.')
 
               # Perform field decryption
               #              
               for record in records:
                   for fieldname in self.fieldnames:
-                      if fieldname.startswith('_'):
+                      if fieldname=='_time' or fieldname=='_raw':
                           continue   
                       try:
                           record[fieldname] = dec.private_decrypt(base64.decodestring(record[fieldname]), M2Crypto.RSA.pkcs1_padding)
                       except:
-                          print 'Decryption failed: %s' % record[fieldname]
+                          raise RuntimeWarning('Decryption failed for field: %s' % fieldname)
                   yield record
                   
           else:
-              raise RuntimeWarning('User \'%s\' is not authorized to perform decryption operations.' % str(current_user))
+              raise RuntimeWarning('User \'%s\' is not authorized to perform field decryption.' % str(current_user))
                        
       else:
-          raise ValueError('Invalid mode has been set: %s' % mode)
-      f.close()
+          raise ValueError('Invalid mode has been set: %s.' % mode)
 dispatch(CryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)

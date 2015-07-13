@@ -1,5 +1,5 @@
 ##############################################################################
-#---      A Splunk> Support Add-On providing the 'crypt' command for      ---#
+#---     A Splunk> Support Add-On introducing the 'crypt' command for     ---#
 #---   encrypting fields using RSA and decrypting RSA encrypted fields.   ---#
 ##############################################################################
 
@@ -7,7 +7,7 @@
 
  - Encrypt fields during search time using RSA
  - Decrypt fields during search time using RSA
- 
+   
  - Manage the usage of encryption and decryption via two new roles
  - Manage the decryption of specific fields on a per user basis using         \
    encrypted private key files and providing only authorized users with the   \
@@ -37,19 +37,26 @@
 ### Usage
 
  - Syntax
-   crypt mode=<d|e> key=<filepath> [keyencryption=<true|false>] <fieldlist>
+   crypt mode=<d|e> key=<filepath> [keyencryption=<true|false> |              \
+         randpadding=<boolean>] <fieldlist>
    
    where 
    mode=e specifies encryption for the given field list using the provided key.
    mode=d specifies decryption for the given field list using the provided key.
-   
+
+   When setting the optional parameter randpadding to false, random padding   \
+   during field encryption is disabled resulting in a unique cipher for each  \
+   unique field value. Otherwise encryption results in a unique cipher per event.
+   Setting randpadding to false is not recommended since it allows certain    \
+   attacks on the RSA crypto system.
+    
    When using an encrypted private key for field decryption, set the optional \
    parameter 'keyencryption' to true. The password to use will be drawn from  \
    Splunk's password storage.
    Passwords can be set per user and key file in the app's set up screen.
    Currently supported algorithms for key encryption are AES256-CBC, DES-CBC  \
-   and DES-EDE3-CBC.
-
+   and DES-EDE3-CBC.  
+   
 ### Examples
 
     Decrypt the content of the already RSA encrypted field username for       \
@@ -95,10 +102,49 @@
  - Collecting encrypted events in a summary index requires pre-formatting     \
    using table etc. since the original events won't get modified. Fields like \
    host and source might become prepended with orig_ by Splunk when collecting them.
- - Tested with Splunk 6.2.x
+ - Tested with Splunk 6.2.x and Splunk 6.3 beta
  
- - The crypt command uses the python RSA implementation by Sybren A. Stuevel  \
-   <sybren@stuvel.eu> licensed under the under the Apache License, Version 2.0
-   http://www.apache.org/licenses/LICENSE-2.0
+ - The crypt command uses a modified version of Sybren A. Stuevel's python    \
+   RSA implementation <sybren@stuvel.eu>. Licensed under the under the Apache \
+   License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
 
- 
+   
+   
+############################################################################## 
+#---   Also introducing the 'hash' command for hashing fields using the   ---#
+#---  common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51  ---#
+##############################################################################
+
+### Key features
+
+ - Hash fields during search time using MD5, SHA1, SHA224, SHA256, SHA384 or  \
+   SHA51
+   
+ - The purpose is to mask fields, map fields to short and unique values and   \
+   to expand the app's possible application by supporting the  the crypt command.
+   
+### Set Up
+
+ - Place SA-hypercrypto under $SPLUNK_HOME/etc/apps/
+ - Optional:
+   Generate a file containing a salt for spicing your hashes.
+   
+### Usage
+
+ - Syntax
+   hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512>                      \
+        [saltfile=<file_path>] <field-list>
+
+   When setting the optional parameter saltfile, the content of the specified \
+   file gets applied as a salt to the field values to hash.
+  
+### Restrictions
+
+ - Attempts to hash _time will be ignored since Splunk expects a valid _time field. 
+ - Wildcards for field names are not supported.
+
+### Notes
+
+ - It is not recommended to use MD5 or SHA1 since these hashing algorithms    \
+   are not regarded as safe anymore.
+ - Tested with Splunk 6.2.x and Splunk 6.3 beta
