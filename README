@@ -23,8 +23,9 @@
  - Generate a valid RSA key pair and store it in PEM format.
    Example using OpenSSL:
      openssl genrsa [-aes256|-des|-des3 -passout pass:password] -out          \
-     private.pem <1024|2048|4096>
+     private.pem <2048|4096>
      openssl rsa -in private.pem -outform PEM -RSAPublicKey_out -out public.pem
+   Note that using 1024 bit keys is considered unsafe and therefore forbidden.
  - Optional: 
    If you plan to use an encrypted private key provide a corresponding password
    via the app's set up screen 'Manage Apps -> SA-hypercrypto -> Set Up'.
@@ -73,21 +74,18 @@
     
     search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem subject content
     
-    Encrypt the values of the field subject and content of sourcetype mail    \ 
-    stored in plain text and collect the events in a summary index.
-    Note: Since the command does not modify the original fields, you can not  \
-          collect the events with modified content directly. You have to      \
-          pre-format the information to collect using table etc.
+    Encrypt raw events of sourcetype mail and collect the results in a summary index.
     
-    search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem subject   \
-    content | table sender referer subject content | collect index=summary
+    search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw |    \
+    collect index=summary
     
 ### Restrictions
 
- - Attempts to encrypt _raw or _time will be ignored since Splunk expects a   \
-   valid _time field. 
+ - Attempts to encrypt _time will be ignored since Splunk expects a valid _time
+   field. 
  - Wildcards for field names are not supported.
- - Currently only PKCS#1 and PKCS#1.5 are supported.
+ - Currently only PKCS#1 v1.5 encryption is implemented, support for PKCS#1 v2
+   will follow.
  - Password management via the set up screen has not been implemented yet,    \
    since Splunk does not provide a way to do so via SimpleXML.                \
    So you can not update stored passwords at this point in time.              \
@@ -95,21 +93,25 @@
  - Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for     \
    private key file encryption.
 
+### Security considerations
+
+ - Disabling random padding is useful in some cases but enables certain       \
+   attacks to the RSA crypto system. So use randpadding=false with caution.
+ - The RSA implementation is only capable of processing 255 - 11 bytes of     \
+   data at once. Fields larger than that have to be split. This enables       \
+   certain attacks to the RSA crypto system. Therefore it is reccomended to   \
+   always set randpadding=t when encrypting large fields.
+   
 ### Notes
 
- - The encryption algorithm uses random padding for security reasons so       \
-   encrypting a field will result in a distinct value for each event.
- - Collecting encrypted events in a summary index requires pre-formatting     \
-   using table etc. since the original events won't get modified. Fields like \
-   host and source might become prepended with orig_ by Splunk when collecting them.
  - Tested with Splunk 6.2.x and Splunk 6.3 beta
- 
- - The crypt command uses a modified version of Sybren A. Stuevel's python    \
-   RSA implementation <sybren@stuvel.eu>. Licensed under the under the Apache \
-   License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
+ - The crypt command uses a slightly modified version of Sybren A. Stuevel's  \
+   <sybren@stuvel.eu> RSA implementation in python which is licensed under    \
+   the under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
 
    
-   
+ 
+ 
 ############################################################################## 
 #---   Also introducing the 'hash' command for hashing fields using the   ---#
 #---  common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51  ---#
@@ -121,7 +123,7 @@
    SHA51
    
  - The purpose is to mask fields, map fields to short and unique values and   \
-   to expand the app's possible application by supporting the  the crypt command.
+   to expand the app's possible application by supporting the crypt command.
    
 ### Set Up
 
@@ -147,4 +149,6 @@
 
  - It is not recommended to use MD5 or SHA1 since these hashing algorithms    \
    are not regarded as safe anymore.
+ - You can always use Splunk's secret file $SPLUNK_HOME/etc/auth/splunk.secret
+   as salt.
  - Tested with Splunk 6.2.x and Splunk 6.3 beta

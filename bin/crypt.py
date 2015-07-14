@@ -4,6 +4,9 @@
     Implementation of the custom Splunk> search command "crypt" used
     for encrypting fields using RSA or decrypting RSA encrypted fields 
     during search time.
+    
+    Author: Harun Kuessner
+    Version: 1.3
 """
 
 from __future__ import absolute_import
@@ -34,9 +37,10 @@ class CryptCommand(StreamingCommand):
     
     When setting `mode=e` encryption is specified.
     Fields provided by `field-list` are encrypted using the PEM key file provided by `key`.
-    When setting the optional parameter randpadding to false, random padding during field
-    encryption is disabled resulting in a unique cipher for each unique field value.
-    Otherwise encryption results in a unique cipher per event.
+    When setting the optional parameter randpadding to false, random padding during field 
+    encryption is disabled resulting in a unique cipher for each unique field value. 
+    Otherwise encryption results in a unique cipher per event. Set randpadding to false 
+    with caution since it allows certain attacks on the RSA crypto system.
 
     When setting `mode=d` decryption is specified.
     Fields provided by `field-list` are decrypted using the PEM key file provided by `key`.   
@@ -64,14 +68,9 @@ class CryptCommand(StreamingCommand):
     
     search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem subject content
     
-    Encrypt the values of the field `subject` and `content` of sourcetype `mail` 
-    stored in plain text and collect the events in a summary index.
-    Note: Since the command does not modify the original fields, you can not collect the 
-          events with modified content directly. You have to pre-format the information to
-          collect using `table` etc.
+    Encrypt raw events of sourcetype `mail` and collect the results in a summary index.
     
-    search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem subject content | 
-    table sender referer subject content | collect index=summary
+    search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect index=summary
           
     """
     
@@ -98,12 +97,12 @@ class CryptCommand(StreamingCommand):
         **Syntax:** **randpadding=***<true|false>*
         **Description:** Use random padding while encrypting or not''',
         require=False, validate=validators.Boolean())   
-        
+
     def stream(self, records):     
       # Bind to current Splunk session
       #
       service = client.Service(token=self.input_header["sessionKey"])
-
+      
       # Get user objects
       #
       xml_doc = minidom.parseString(self.input_header["authString"])      
@@ -111,18 +110,23 @@ class CryptCommand(StreamingCommand):
       kwargs = {"sort_key":"realname", "search":str(current_user), "sort_dir":"asc"}
       users = service.users.list(count=-1,**kwargs)
       user_authorization = 0 
-            
+
       # Check if a valid PEM file was provided
       #
       file_content = self.key.read()
       file_type = 'PEM'
-      
+
       if re.match(r'-----BEGIN .* KEY-----', file_content) is None:
           raise RuntimeWarning('Currently only keys in PEM format are supported. Please specify a valid key file.')  
-      
+
       # Handle encryption
       #
       if re.match(r'e', self.mode) is not None:
+          # Check key length
+          #
+          if len(file_content.rsplit('KEY-----\n')[1].rsplit('\n-----END')[0]) < 256:
+              raise RuntimeWarning('Using 1024 bit keys is unsafe and therefore forbidden. Consider generating larger keys.')
+
           # Check if invoking user is authorized to encrypt data
           #
           for user in users:
@@ -133,7 +137,7 @@ class CryptCommand(StreamingCommand):
                       for imported_role in role.imported_roles:
                           if re.match(r'can_encrypt', imported_role) is not None:
                               user_authorization = 1
-                              
+
           if user_authorization == 1:                  
               # Decode key file's content
               #
@@ -144,27 +148,48 @@ class CryptCommand(StreamingCommand):
 
               # Perform field encryption
               #
+              new_record = ''
               for record in records:
                   for fieldname in self.fieldnames:
-                      if fieldname=='_time' or fieldname=='_raw':
-                          continue             
-                      try:
-                          # Do not use random padding for encryption
-                          #
-                          if re.match(r'False', str(self.randpadding)):                          
-                              record[fieldname] = base64.encodestring(rsa.encrypt_zero_padding(record[fieldname], enc))
-                          # Use random padding for encryption
-                          #
-                          else:                         
-                              record[fieldname] = base64.encodestring(rsa.encrypt_rand_padding(record[fieldname], enc))
-                      except:
-                          raise RuntimeWarning('Encryption failed for field: %s' % fieldname)
+                      if fieldname=='_time':
+                          continue
+
+                      # Split fields bigger than 256-11 bytes.
+                      #
+                      if len(record[fieldname]) > 245:
+                          for i in xrange(0,len(record[fieldname]),245):
+                              try:                          
+                                  # Do not use random padding for encryption
+                                  #
+                                  if re.match(r'False', str(self.randpadding)):                
+                                      new_record += base64.encodestring(rsa.encrypt_zero_padding(record[fieldname][i:i+245], enc)) 
+                                  # Use random padding for encryption
+                                  #
+                                  else:                               
+                                      new_record += base64.encodestring(rsa.encrypt_rand_padding(record[fieldname][i:i+245], enc))
+                              except:
+                                  raise RuntimeWarning('Encryption failed for field: %s' % fieldname)                                  
+                          record[fieldname] = new_record
+                          new_record = ''
+
+                      else:
+                          try:
+                              # Do not use random padding for encryption
+                              #
+                              if re.match(r'False', str(self.randpadding)):                          
+                                  record[fieldname] = base64.encodestring(rsa.encrypt_zero_padding(record[fieldname], enc))
+                              # Use random padding for encryption
+                              #
+                              else:                         
+                                  record[fieldname] = base64.encodestring(rsa.encrypt_rand_padding(record[fieldname], enc))
+                          except:
+                              raise RuntimeWarning('Encryption failed for field: %s' % fieldname)
                   yield record
-                  
+
           else:
               raise RuntimeWarning('User \'%s\' is not authorized to perform field encryption.' % str(current_user))
-           
-                          
+
+
       # Handle decryption
       #
       elif re.match(r'd', self.mode) is not None:
@@ -178,13 +203,12 @@ class CryptCommand(StreamingCommand):
                       for imported_role in role.imported_roles:
                           if re.match(r'can_decrypt', imported_role) is not None:
                               user_authorization = 1
-                   
+
           if user_authorization == 1:
               # Handle key file decryption
               #
               if self.keyencryption:       
                   # Get associated password from Splunk's password storage
-                  # Prepare key file decryption
                   #
                   kwargs = {"sort_key":"realm", "search":str(current_user), "sort_dir":"asc"}
                   storage_passwords = service.storage_passwords.list(count=-1,**kwargs)
@@ -199,7 +223,7 @@ class CryptCommand(StreamingCommand):
                           dec = M2Crypto.RSA.load_key(self.key.name, read_password)
                   if got_password == 0:
                       raise ValueError('No password associated with the specified key file has been set for user \'%s\'.' % str(current_user))
-          
+
               else:
                   # Decode unencrypted key file's content
                   #
@@ -209,20 +233,38 @@ class CryptCommand(StreamingCommand):
                       raise RuntimeWarning('Invalid or encrypted key file has been provided for decryption.')
 
               # Perform field decryption
-              #              
+              #
+              new_record = ''
               for record in records:
                   for fieldname in self.fieldnames:
-                      if fieldname=='_time' or fieldname=='_raw':
-                          continue   
-                      try:
-                          record[fieldname] = dec.private_decrypt(base64.decodestring(record[fieldname]), M2Crypto.RSA.pkcs1_padding)
-                      except:
-                          raise RuntimeWarning('Decryption failed for field: %s' % fieldname)
+                      if fieldname=='_time':
+                          continue
+
+                      # If field was split
+                      #
+                      if len(record[fieldname]) > 686:
+                          for chunk in record[fieldname].split('='):
+                              if chunk == '\n':
+                                  continue
+                              chunk = chunk.replace('\n', '') + '='
+                              try:
+                                  new_record += dec.private_decrypt(base64.decodestring(chunk), M2Crypto.RSA.pkcs1_padding)
+                              except:
+                                  raise RuntimeWarning('Decryption failed for field: %s' % fieldname)
+                          record[fieldname] = new_record
+                          new_record = ''
+
+                      else:
+                          try:
+                              record[fieldname] = dec.private_decrypt(base64.decodestring(record[fieldname]), M2Crypto.RSA.pkcs1_padding)
+                          except:
+                              raise RuntimeWarning('Decryption failed for field: %s' % fieldname)
                   yield record
-                  
+
           else:
               raise RuntimeWarning('User \'%s\' is not authorized to perform field decryption.' % str(current_user))
-                       
+
       else:
           raise ValueError('Invalid mode has been set: %s.' % mode)
+
 dispatch(CryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)

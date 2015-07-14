@@ -4,6 +4,9 @@
     Implementation of the custom Splunk> search command "hash" used
     for hashing fields during search time using the common hashing 
     algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA512.
+    
+    Author: Harun Kuessner
+    Version: 1.0
 """
 
 import sys, base64, re

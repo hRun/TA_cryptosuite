@@ -20,6 +20,9 @@ This is the actual core RSA implementation, which is only defined
 mathematically on integers.
 '''
 
+'''Modified by Harun Kuessner.
+   Mitigated potential security flaws caused by verbose exception messages.
+'''
 
 from rsa._compat import is_integer
 
@@ -41,7 +44,7 @@ def encrypt_int(message, ekey, n):
         raise ValueError('Only non-negative numbers are supported')
          
     if message > n:
-        raise OverflowError("The message %i is too long for n=%i" % (message, n))
+        raise OverflowError("The message is too long for the public exponent.")
 
     return pow(message, ekey, n)
 

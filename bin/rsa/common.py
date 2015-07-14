@@ -16,6 +16,9 @@
 
 '''Common functionality shared by several modules.'''
 
+'''Modified by Harun Kuessner.
+   Mitigated potential security flaws caused by verbose exception messages.
+'''
 
 def bit_size(num):
     '''
@@ -140,7 +143,7 @@ def inverse(x, n):
     (divider, inv, _) = extended_gcd(x, n)
 
     if divider != 1:
-        raise ValueError("x (%d) and n (%d) are not relatively prime" % (x, n))
+        raise ValueError("x and n are not relatively prime")
 
     return inv
 

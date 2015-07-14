@@ -25,6 +25,10 @@ of pyasn1.
 
 '''
 
+'''Modified by Harun Kuessner.
+   Mitigated potential security flaws caused by verbose exception messages.
+'''
+
 import logging
 from rsa._compat import b, bytes_type
 
@@ -521,12 +525,10 @@ def calculate_keys(p, q, nbits):
     try:
         d = rsa.common.inverse(e, phi_n)
     except ValueError:
-        raise ValueError("e (%d) and phi_n (%d) are not relatively prime" %
-                (e, phi_n))
+        raise ValueError("e and phi_n are not relatively prime")
 
     if (e * d) % phi_n != 1:
-        raise ValueError("e (%d) and d (%d) are not mult. inv. modulo "
-                "phi_n (%d)" % (e, d, phi_n))
+        raise ValueError("e and d are not mult. inv. modulo phi_n")
 
     return (e, d)
 

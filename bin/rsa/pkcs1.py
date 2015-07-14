@@ -28,8 +28,9 @@ can be used to deduce where in the process the failure occurred. DO NOT PASS
 SUCH INFORMATION to your users.
 '''
 
-'''Modified by Harun Kuessner for correct function with the custom Splunk>
-   'crypt' command. Added methods for encryption without random padding.
+'''Modified by Harun Kuessner.
+   Added methods for encryption without random padding for proper function 
+   of the custom Splunk 'crypt' command.
 '''
 
 import os
