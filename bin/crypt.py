@@ -242,9 +242,9 @@ class CryptCommand(StreamingCommand):
 
                       # If field was split
                       #
-                      if len(record[fieldname]) > 686:
-                          for chunk in record[fieldname].split('='):
-                              if chunk == '\n':
+                      if len(record[fieldname]) > 346:
+                          for chunk in record[fieldname].split('=\n'):
+                              if len(chunk) <= 1:
                                   continue
                               chunk = chunk.replace('\n', '') + '='
                               try:
