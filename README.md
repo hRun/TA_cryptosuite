@@ -92,13 +92,12 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
    <sybren@stuvel.eu> RSA implementation in python which is licensed under    \
    the under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
 
-   
+# Appendix
 
+## Hash command
 
-##############################################################################
-#---   Also introducing the 'hash' command for hashing fields using the   ---#
-#---  common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51  ---#
-##############################################################################
+### Introduction
+The Support Add-on for Hypercrypto also provides a custom search command 'hash' for hashing fields using the common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51
 
 ### Key features
 
