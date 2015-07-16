@@ -87,7 +87,7 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  - The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split. This enables certain attacks to the RSA crypto system. Therefore it is reccomended to always set randpadding=t when encrypting large fields.
 
 ### Notes
- - Tested with Splunk 6.2.x and Splunk 6.3 beta
+ - Tested with Splunk 6.2.x
  - The crypt command uses a slightly modified version of Sybren A. Stuevel's  \
    <sybren@stuvel.eu> RSA implementation in python which is licensed under    \
    the under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
@@ -133,7 +133,7 @@ The Support Add-on for Hypercrypto also provides a custom search command 'hash' 
    are not regarded as safe anymore.
  - You can always use Splunk's secret file $SPLUNK_HOME/etc/auth/splunk.secret
    as salt.
- - Tested with Splunk 6.2.x and Splunk 6.3 beta
+ - Tested with Splunk 6.2.x
 
 ## License
 - **This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [1]
