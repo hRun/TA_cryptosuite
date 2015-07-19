@@ -81,6 +81,7 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  will follow.
 - Password management via the set up screen has not been implemented yet, since Splunk does not provide a way to do so via SimpleXML. So you can not update stored passwords at this point in time. Manage your stored passwords in SA-hypercrypto/local/app.conf.
 - Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private key file encryption.
+- Because of limitations of the Splunk Password Keystore, a user needs the "admin_all_objects" -capability to access his key. We recommend to only assign the capability for a limited time. A future release of Splunk or Hyperthreat will work around this issue.
 
 ### Security considerations
  - Disabling random padding is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
