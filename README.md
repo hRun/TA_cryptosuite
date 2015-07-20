@@ -81,6 +81,8 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  will follow.
 - Password management via the set up screen has not been implemented yet, since Splunk does not provide a way to do so via SimpleXML. So you can not update stored passwords at this point in time. Manage your stored passwords in SA-hypercrypto/local/app.conf.
 - Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private key file encryption.
+=======
+- Because of limitations of the Splunk Password Keystore, a user needs the "admin_all_objects" -capability to access his key. We recommend to only assign the capability for a limited time. A future release of Splunk or Hyperthreat will work around this issue.
 
 ### Security considerations
  - Disabling random padding is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
@@ -91,14 +93,20 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  - The crypt command uses a slightly modified version of Sybren A. Stuevel's  \
    <sybren@stuvel.eu> RSA implementation in python which is licensed under    \
    the under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
-
-   
+ 
 
 
 ##############################################################################
 #---   Also introducing the 'hash' command for hashing fields using the   ---#
 #---  common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51  ---#
 ##############################################################################
+=======
+# Appendix
+
+## Hash command
+
+### Introduction
+The Support Add-on for Hypercrypto also provides a custom search command 'hash' for hashing fields using the common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51
 
 ### Key features
 
@@ -135,3 +143,16 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  - You can always use Splunk's secret file $SPLUNK_HOME/etc/auth/splunk.secret
    as salt.
  - Tested with Splunk 6.2.x and Splunk 6.3 beta
+
+## License
+- **This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [1]
+- **Commercial Use, Excerpt from CC BY-NC-SA 4.0:**
+  - "A commercial use is one primarily intended for commercial advantage or monetary compensation."
+- **In case of Support Add-on for Hypercrypto this translates to:**
+  - You may use Support Add-on for Hyperbaseline in commercial environments for handling in-house Splunk alerts
+  - You may use Support Add-on for Hypercrypto as part of your consulting or integration work, if you're considered to be working on behalf of your customer. The customer will be the licensee of Support Add-on for Hypercrypto and must comply according to the license terms
+  - You are not allowed to sell Support Add-on for Hypercrypto as a standalone product or within an application bundle
+  - If you want to use Support Add-on for Hypercrypto outside of these license terms, please contact us and we will find a solution
+
+## References
+[1] http://creativecommons.org/licenses/by-nc-sa/4.0/
