@@ -1,7 +1,7 @@
 # Support Add-on for Hypercrypto
 - **Authors**:		Simon Balz <simon@balz.me>, Mika Borner <mika.borner@gmail.com>, Christoph Dittmann <mulibu.flyingk@gmail.com>, Harun Kuessner <h.kuessner@posteo.de>
 - **Description**:	A Splunk> Support Add-On introducing the 'crypt' command for encrypting fields using RSA and decrypting RSA encrypted fields.
-- **Version**: 		1.3
+- **Version**: 		1.4
 
 ## Introduction
 The Support Add-on for Hypercrypto provides a custom search commands which enables the user to encrypt and decrypt during search time using RSA.
@@ -18,6 +18,8 @@ The Support Add-on for Hypercrypto provides a custom search commands which enabl
 - The app will be used within customer projects, and improved according to customer and community needs. Development of the app will happen in public. Bugs/Issues and improvement requests can be opened on the project's Github page (<https://github.com/my2ndhead/SA-hypercrypto/issues>).
 
 ## Release Notes
+- **v1.4**  /   2015-07-20
+  - Bugfixes and final release for Apptitude2 submission
 - **v1.3**	/ 	2015-07-15
 	- Implemented support for encrypting fields larger than 245 bytes
 
@@ -81,6 +83,7 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  will follow.
 - Password management via the set up screen has not been implemented yet, since Splunk does not provide a way to do so via SimpleXML. So you can not update stored passwords at this point in time. Manage your stored passwords in SA-hypercrypto/local/app.conf.
 - Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private key file encryption.
+=======
 - Because of limitations of the Splunk Password Keystore, a user needs the "admin_all_objects" -capability to access his key. We recommend to only assign the capability for a limited time. A future release of Splunk or Hyperthreat will work around this issue.
 
 ### Security considerations
@@ -88,11 +91,18 @@ search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect i
  - The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split. This enables certain attacks to the RSA crypto system. Therefore it is reccomended to always set randpadding=t when encrypting large fields.
 
 ### Notes
- - Tested with Splunk 6.2.x
+ - Tested with Splunk 6.2.x and Splunk 6.3 beta
  - The crypt command uses a slightly modified version of Sybren A. Stuevel's  \
    <sybren@stuvel.eu> RSA implementation in python which is licensed under    \
    the under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
+ 
 
+
+##############################################################################
+#---   Also introducing the 'hash' command for hashing fields using the   ---#
+#---  common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51  ---#
+##############################################################################
+=======
 # Appendix
 
 ## Hash command
@@ -134,7 +144,7 @@ The Support Add-on for Hypercrypto also provides a custom search command 'hash' 
    are not regarded as safe anymore.
  - You can always use Splunk's secret file $SPLUNK_HOME/etc/auth/splunk.secret
    as salt.
- - Tested with Splunk 6.2.x
+ - Tested with Splunk 6.2.x and Splunk 6.3 beta
 
 ## License
 - **This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [1]
