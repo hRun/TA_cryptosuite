@@ -1,7 +1,7 @@
 # Support Add-on for Hypercrypto
 - **Authors**:		Simon Balz <simon@balz.me>, Mika Borner <mika.borner@gmail.com>, Christoph Dittmann <mulibu.flyingk@gmail.com>, Harun Kuessner <h.kuessner@posteo.de>
 - **Description**:	A Splunk> Support Add-On introducing the 'crypt' command for encrypting fields using RSA and decrypting RSA encrypted fields.
-- **Version**: 		1.3
+- **Version**: 		1.4
 
 ## Introduction
 The Support Add-on for Hypercrypto provides a custom search commands which enables the user to encrypt and decrypt during search time using RSA.
@@ -18,6 +18,8 @@ The Support Add-on for Hypercrypto provides a custom search commands which enabl
 - The app will be used within customer projects, and improved according to customer and community needs. Development of the app will happen in public. Bugs/Issues and improvement requests can be opened on the project's Github page (<https://github.com/my2ndhead/SA-hypercrypto/issues>).
 
 ## Release Notes
+- **v1.4**  /   2015-07-20
+  - Bugfixes and final release for Apptitude2 submission
 - **v1.3**	/ 	2015-07-15
 	- Implemented support for encrypting fields larger than 245 bytes
 
