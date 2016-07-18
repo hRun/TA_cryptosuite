@@ -6,7 +6,7 @@
     during search time.
     
     Author: Harun Kuessner
-    Version: 1.3
+    Version: 1.5
 """
 
 from __future__ import absolute_import
