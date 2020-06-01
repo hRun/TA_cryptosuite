@@ -1,158 +1,147 @@
-# Support Add-on for Hypercrypto
-- **Authors**:		Harun Kuessner <h.kuessner@posteo.de>, Simon Balz <simon@balz.me>, Mika Borner <mika.borner@gmail.com>, Christoph Dittmann <mulibu.flyingk@gmail.com>
-- **Maintainer**: Harun Kuessner <h.kuessner@posteo.de>
-- **Description**:	A Splunk> Support Add-On introducing the 'crypt' command for encrypting fields using RSA and decrypting RSA encrypted fields. Also introducing the 'hash'command for hashing fields.
-- **Version**: 		1.5
+# SA-cryptosuite
 
-## Introduction
-The Support Add-on for Hypercrypto provides a custom search commands which enables the user to encrypt and decrypt during search time using RSA. The Add-on provides a second custom search command for hashing fields.
+The Splunk® Support Add-On _Cryptosuite_ is the successor to the deprecated Support Add-On for Hypercrypto (https://github.com/my2ndhead/SA-hypercrypto).
 
-## Features
- - Encrypt fields during search time using RSA
- - Decrypt fields during search time using RSA  
- - Manage the usage of encryption and decryption via two new roles
- - Manage the decryption of specific fields on a per user basis using encrypted private key files and providing only authorized users with the corresponding password.
- - The purpose is to allow only a specific set of users to view certain information due to legal restrictions, privacy policies, etc.
- - Hash fields during search time using common hashing algorithms
+It implements and extends the custom search commands _crypt_ and _hash_ for encrypting/decrypting and hashing fields and events at search time.
 
-## Additional Notes for Apptitude App Contest
-- The app uses only portable code and is tested thoroughly on *nix systems.
-- The app will be used within customer projects, and improved according to customer and community needs. Development of the app will happen in public. Bugs/Issues and improvement requests can be opened on the project's Github page (<https://github.com/my2ndhead/SA-hypercrypto/issues>).
+* Encrypt/decrypt fields or complete events during search time using RSA or AES-128/192/256-CBC
+* Hash fields or complete events during search time using md5 / sha1 / sha2 (sha224/sha256/sha384/sha512)
+* Manage access to encryption and decryption functionality on a per-user basis via two shipped roles
+* Manage useable encryption/decryption keys on a per-user basis via the app's setup screen
 
-## Release Notes
- - **v1.5** /   2016-07-16
-    - Added support for Splunk 6.4.x
-    - Now using Python SDK for Splunk v 1.6.0
-    - Fixed small bugs with searchbnf and READMEs
-- **v1.4**  /   2015-07-20
-  - Bugfixes and final release for Apptitude2 submission
-- **v1.3**	/ 	2015-07-15
-	- Implemented support for encrypting fields larger than 245 bytes
+Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.0.2.1.
 
-## Installation and Usage
+Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
-### Installation
-1. Download the [latest](https://github.com/my2ndhead/SA-hypercrypto/archive/master.zip) add-on
-2. Unpack and upload the add-on to the search head
-   IMPORTANT: Make sure, the App's folder name in $SPLUNK_HOME/etc/apps is SA-hyperbaseline (Downloading apps from git and uploading them to Splunk will result in wrong folder names)
-3. Restart Splunk
-4. Provide users or roles with the roles 'can_encrypt' and/or 'can_decrypt' needed for using the crypt command.
-5. Generate a valid RSA key pair and store it in PEM format.
-   Example using OpenSSL:
-     openssl genrsa [-aes256|-des|-des3 -passout pass:password] -out private.pem <2048|4096>
-     openssl rsa -in private.pem -outform PEM -RSAPublicKey_out -out public.pem
-   Note that using 1024 bit keys is considered unsafe and therefore forbidden.
-6. Optional:
-   If you plan to use an encrypted private key provide a corresponding password
-   via the app's set up screen 'Manage Apps -> SA-hypercrypto -> Set Up'.
-   Passwords for encrypted private key files can be set per user and key file and get stored in Splunk's internal password storage.
+* Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
+* Version: 2.0a
+* License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [2]
 
-**Note**: This procedure is a security feature, since specifing the password directly in the search would make it visible in the _internal index.
+## Installation
 
-**Note**: Version 1.5 requires Python 2.7 to be installed on the system.
+1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _SA-cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
+2. Assign the roles 'can_encrypt' and/or 'can_decrypt' to users/roles who should be able to encrypt/decrypt data using the _crypt_ command. The _hash_ command will automatically be available to all users.
+3. Read and follow the requirements below.
 
-### Usage
-- Syntax
- crypt mode=(d|e) key=<file_path> (randpadding=<boolean>)? (keyencryption=<boolean>)? <field-list>
+Optional: Set _python.version=python2_ or _python.version=python3_ in _commands.conf_ if you would like to explicitly specify the Python version to use. Otherwise this will be determined by your instance's global settings.
+Optional: Change the app's visibility via _Manage\>Apps_ or _app.conf_ if you wish.
 
- where
- mode=e specifies encryption for the given field list using the provided key.
- mode=d specifies decryption for the given field list using the provided key.
+### Requirements
 
- When setting the optional parameter randpadding to false, random padding during field encryption is disabled resulting in a unique cipher for each unique field value. Otherwise encryption results in a unique cipher per event.
- Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
+In order for the add-on to be fully usable you'll need to create and store (accessibly) cryptographic keys. Here's how:
 
- When using an encrypted private key for field decryption, set the optional parameter 'keyencryption' to true. The password to use will be drawn from Splunk's password storage.
- Passwords can be set per user and key file in the app's set up screen.
- Currently supported algorithms for key encryption are AES256-CBC, DES-CBC and DES-EDE3-CBC.  
+1. Generate a valid RSA key pair (optionally with key encryption) and store it in PEM format. Or create a "key file" for AES.
+
+&nbsp;&nbsp;&nbsp;Example RSA key pair creation with currently supported parameters using OpenSSL:
+   
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openssl genrsa [-aes256|-des|-des3 -passout pass:password] -out private.pem <2048|4096>
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openssl rsa -in private.pem -outform PEM -RSAPublicKey_out -out public.pem
+   
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that using 1024 bit keys is considered unsafe and therefore forbidden.
+
+&nbsp;&nbsp;&nbsp;Example "key file" creation for AES:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Put your key and IV in UTF-8 or Base64 into a plain ASCII file. Key has to go on line 1 and IV on line 2.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key and IV length have to be 16/24/32 bytes respectively for 128/192/256 AES encryption.
+
+2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib_). Ask him to set appropriate system-level file permissions.
+
+3. Optional: If you plan to use an encrypted private RSA key, provide the corresponding password via the app's set up screen _Manage Apps>SA-cryptosuite>Set Up_ in order to be able to use the key. Passwords for encrypted private key files can be set per user and key file and get stored in Splunk's internal password storage. Currently supported algorithms for key encryption are AES256-CBC, DES-CBC and DES-EDE3-CBC.
+
+If you plan on salting your hashes, create and store (accessibly) salts like so:
+
+1. Generate a file containing a salt for spicing your hashes by putting whatever string you would like to use as salt into a plain ASCII file.
+
+2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib_). Ask him to set appropriate system-level file permissions.
+
+**Note**: Handling AES keys and salts this way is a security feature, since specifing the key/salt directly in the search would make them visible in the _internal index.
+
+## Usage
+
+Syntax: *crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_path> [randpadding=\<true|false>] <field-list>*
+
+_mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
+_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
+_key_: Mandatory. Set to the name of the file containing your key and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib_.
+_randpadding_: Optional, default: _true_. Only valid for _algo=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
+
+Syntax: *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512> [saltfile=\<file_path>] <field-list>*
+
+_algorithm_: Mandatory. Set to the hashing algorithm you would like to use.
+_saltfile_: Optional. Set to the name of a file containing a salt and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib_.
    
 ### Examples
-Decrypt the content of the already RSA encrypted field username for
-output in plain text using the key file lib/keys/private.pem.
-The key file is encrypted with AES256-CBC, so set keyencryption to true. The correspondig password has to be set via the app's set up screen prior to using the key.
 
-search sourcetype="server::access" | crypt mode=d key=lib/keys/private.pem
-keyencryption=true username | table _time action username
+Encrypt the values of the plaintext fields "subject" and "content" of sourcetype "mail" using rsa and the key "public.pem".
 
-Encrypt the values of the fields subject and content of sourcetype mail stored in plain text.
+&nbsp;&nbsp;&nbsp;_search sourcetype="mail" | crypt mode=e algorithm=rsa key=public.pem subject content_
 
-search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem subject content
+Encrypt raw events of sourcetype "mail" using AES-256-CBC and collect the results in a summary index.
 
-Encrypt raw events of sourcetype mail and collect the results in a summary index.
+&nbsp;&nbsp;&nbsp;_search sourcetype="mail" | crypt mode=e algorithm=aes-256-cbc key=secret.txt \_raw | collect index=summary_
 
-search sourcetype="mail" | crypt mode=e key=lib/keys/public.pem _raw | collect index=summary
+Decrypt the content of the already RSA encrypted and summary-indexed field "username" for output in plain text using RSA. The key file "private.pem" is encrypted with AES256-CBC, so the correspondig password has to be set via the app's set up screen prior to using the key.
 
-## Known Issues
-- Attempts to encrypt _time will be ignored since Splunk expects a valid _time field.
-- Wildcards for field names are not supported.
-- Currently only PKCS#1 v1.5 encryption is implemented, support for PKCS#1 v2 will follow.
-- Password management via the set up screen has not been implemented yet, since Splunk does not provide a way to do so via SimpleXML. So you can not update stored passwords at this point in time. Manage your stored passwords in SA-hypercrypto/local/app.conf.
-- Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private key file encryption.
-- Because of limitations of the Splunk Password Keystore, a user needs the "admin_all_objects" -capability to access his key. We recommend to only assign the capability for a limited time. A future release of Splunk or Hyperthreat will work around this issue.
+&nbsp;&nbsp;&nbsp;_search index=summary sourcetype="server::access" | crypt mode=d algorithm=rsa key=private.pem username | table _time action username_
 
-### Security considerations
- - Disabling random padding is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
- - The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split. This enables certain attacks to the RSA crypto system. Therefore it is reccomended to always set randpadding=t when encrypting large fields.
+Hash a raw event containing some malware threat artifact using sha256.
 
-### Notes
- - Tested with Splunk 6.2 through 6.4.2 on CentOS 6.4 and 7
- - The crypt command uses a slightly modified version of Sybren A. Stuevel's  <sybren@stuvel.eu> RSA implementation in python which is licensed under the under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
- - The crypt command also uses the M2Crypto Python library. See attached license file.
- 
+&nbsp;&nbsp;&nbsp;_search index=threat_intel source=sample.txt | hash algorithm=sha256 \_raw_
 
+### Notes & Restrictions
 
-################################################################################################################################################
-#---   Also introducing the 'hash' command for hashing fields using the common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51  ---#
-################################################################################################################################################
-=======
+* Attempts to encrypt or hash _\_time_ will be ignored since Splunk always expects a valid _\_time_ field.
+* Wildcards for field names are not supported (yet).
+* Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
+* Full password management via the set up screen has not been implemented yet, since Splunk does not provide a way to do so via SimpleXML. So you can not update stored passwords at this point in time. Manage your stored passwords in SA-cryptosuite/local/app.conf.
+   
+#### Security considerations
 
-### Introduction
-The Support Add-on for Hypercrypto also provides a custom search command 'hash' for hashing fields using the common hashing algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA51
+* Granting a user or role the role 'can_encrypt' or 'can_decrypt' needed for usage of the crypt command will also grant them the capability 'list_storage_passwords'. \
+This enables the technically savvy user to potentially read more secrets via Splunk's REST API than desirable. \
+Unfortunately as of now there is no way around this if the encryption/decryption keys used for this app's function should not be stored in plaintext on disk.
+* Disabling random padding when encrypting with RSA is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
+* The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split into blocks. This enables certain attacks to the RSA crypto system. Therefore it is recommended to always set randpadding=true when encrypting large fields.
+* It is not recommended to use MD5 or SHA1 since these hashing algorithms are not seen as safe anymore.
+* Using 1024 bit RSA keys is generally considered unsafe and therefore not possible with the add-on.
 
-### Key features
+## TODO / Known Issues
 
- - Hash fields during search time using MD5, SHA1, SHA224, SHA256, SHA384 or SHA512
+* Major overhaul for Splunk 8 compatibility
+* Ensured cross-compatibility for Python 2 and 3
+* Implement possibility for AES-128/192/256-CBC field/event encryption & decryption
+* Implement possibility for SHA3 hashing of fields/events
+* Implement PKCS#1 v2 support
+* Only allow keys/salts in lib directory
+* Remove keyencryption parameter from crypt command and replace by automatic detection
+* Test with Splunk 7.x
+* Potentially implement support for wildcards for field names
 
- - The purpose is to mask fields, map fields to short and unique values and to expand the app's possible application by supporting the crypt command.
+## History
 
-### Set Up
+### v2.0a
 
- - Place SA-hypercrypto under $SPLUNK_HOME/etc/apps/
- - Optional: Generate a file containing a salt for spicing your hashes.
+* Updated Splunk SDK for Python
+* Updated README and docs with soon-to-come changes
+* Started some changes
 
-### Usage
+*See https://github.com/my2ndhead/SA-hypercrypto for previous, deprecated versions.*
 
-- Syntax
- hash algorithm=(md5|sha1|sha224|sha256|sha384|sha512) (saltfile=<fiel_path>)? <field-list>
+## Attribution
 
- When setting the optional parameter saltfile, the content of the specified file gets applied as a salt to the field values to hash.
-
-### Examples
-
-Hash the field 'body' using SHA256 and Splunk's secret as salt.
-
-search sourcetype="apache::data" | hash algoritm=sha256 saltfile=/opt/splunk/etc/auth/splunk.secret body
-
-### Restrictions
-
- - Attempts to hash _time will be ignored since Splunk expects a valid _time field.
- - Wildcards for field names are not supported.
-
-### Notes
-
- - It is not recommended to use MD5 or SHA1 since these hashing algorithms are not regarded as safe anymore.
- - You can always use Splunk's secret file $SPLUNK_HOME/etc/auth/splunk.secret as salt.
- - Tested with Splunk 6.2.x and Splunk 6.3 beta
+The crypt command uses a slightly modified version of Sybren A. Stuevel's (sybren@stuvel.eu) RSA implementation in Python [1] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
 
 ## License
-- **This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [1]
-- **Commercial Use, Excerpt from CC BY-NC-SA 4.0:**
-  - "A commercial use is one primarily intended for commercial advantage or monetary compensation."
-- **In case of Support Add-on for Hypercrypto this translates to:**
-  - You may use Support Add-on for Hyperbaseline in commercial environments for handling in-house Splunk alerts
-  - You may use Support Add-on for Hypercrypto as part of your consulting or integration work, if you're considered to be working on behalf of your customer. The customer will be the licensee of Support Add-on for Hypercrypto and must comply according to the license terms
-  - You are not allowed to sell Support Add-on for Hypercrypto as a standalone product or within an application bundle
-  - If you want to use Support Add-on for Hypercrypto outside of these license terms, please contact us and we will find a solution
+
+**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [2]
+
+This roughly translates to 
+* You may freely use, share and adapt this work non-commercially as long as you give appropriate credit. When adapting or sharing, this needs to happen under the same license, changes should be indicated.
+* You may freely use this work in a commercial environment as long as the use is not primarily intended for commercial advantage or monetary compensation. You may not sell this work. Neither standalone nor within an application bundle.
+Please reffer to the full license for completeness and correctness.
 
 ## References
-[1] http://creativecommons.org/licenses/by-nc-sa/4.0/
+[1] https://github.com/sybrenstuvel/python-rsa
+[2] http://creativecommons.org/licenses/by-nc-sa/4.0/

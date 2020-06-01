@@ -1,0 +1,31 @@
+The RSA key-pairs in this folder have been created for the purpose of testing using OpenSSL.
+Feel free to use them further on for testing but don't use them in a productive environment,
+since the private key files are available publicly via downloads of this app.
+
+When generating your own key pairs note that
+  1. The key-pairs have to be stored as valid, separate PEM files.
+  2. Using 1024 bit keys is considered unsafe and therefore forbidden in SA-hypercrypto.
+  3. The key files may be placed anywhere but the user you are running Splunk as 
+     needs read access to these files for the crypt command to run successfully.
+  4. Currently only AES-CBC-256, DES-CBC and DED-EDE3-CBC are supported as algorithms 
+     for key encryption by the crypt command.
+  5. Prior to beeing able to use a specific encrypted private key file with the crypt command,
+     you have to make the password used to encrypt this file available on a per user and per file
+     basis by adding it to Splunk's password storage via the app's set up screen.
+     Note: This procedure is a security feature, since specifing the password directly in 
+           the search would make it visible in the _internal index.
+
+
+Examples for key generation as used for generating the test key-pairs:
+
+  openssl genrsa -out private.pem 1024
+  openssl rsa -in private.pem -outform PEM -RSAPublicKey_out -out public.pem
+  ---> These keys won't work.
+
+  openssl genrsa -aes256 -passout pass:1234567890abcdefghijklmnopqrstu -out private_aes256.pem 2048
+  openssl rsa -in private_aes256.pem -outform PEM -RSAPublicKey_out -out public_aes256.pem
+  openssl rsa -in private_aes256.pem -outform DER -out public_aes256.der
+
+  openssl genrsa -des -passout pass:1234567890abcdef -out private_des.pem 2048
+  openssl rsa -in private_des.pem -outform PEM -RSAPublicKey_out -out public_des.pem
+  openssl rsa -in private_des.pem -outform DER -out public_des.der
