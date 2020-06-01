@@ -60,14 +60,14 @@ If you plan on salting your hashes, create and store (accessibly) salts like so:
 
 ## Usage
 
-Syntax: *crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_path> [randpadding=\<true|false>] <field-list>*
+Syntax: *crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_path> [randpadding=\<true|false>] \<field-list>*
 
 _mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 _algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
 _key_: Mandatory. Set to the name of the file containing your key and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib_.
 _randpadding_: Optional, default: _true_. Only valid for _algo=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
 
-Syntax: *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512> [saltfile=\<file_path>] <field-list>*
+Syntax: *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512> [saltfile=\<file_path>] \<field-list>*
 
 _algorithm_: Mandatory. Set to the hashing algorithm you would like to use.
 _saltfile_: Optional. Set to the name of a file containing a salt and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib_.
