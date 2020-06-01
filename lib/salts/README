@@ -1,0 +1,10 @@
+The salt file in this folder has been created for the purpose of testing.
+Feel free to use it further on for testing but don't use it in a productive environment, since the file is available publicly via downloads of this app.
+
+When creating your own salt file note that
+  - A salt is used as an additional input to hashing to improve security by mitigating dictionary attacks. \
+    Different salts will generate completely different hashes, even when the same input data is used. \
+  - Usually salts are only useful when hashing passwords, which are not recommended to be stored in Splunk. \
+    Anyways, here's the feature.
+  - While you can put any preferred string into your salt files, short or simple-to-guess salts will not improve security much. \
+    So choose your salts like you (hopefully) choose your passwords: Long and complex.
