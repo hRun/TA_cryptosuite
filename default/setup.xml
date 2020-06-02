@@ -1,5 +1,11 @@
 <setup>
-    <block title="Set a password to authorize a specific user to decrypt a specific private key file." endpoint="storage/passwords" entity="_new">
+    <block title="Manage which key/salt is accessible by which users and/or roles.">
+	    <!-- Select key (pair)/salt -->
+		<!-- Is encrypted private RSA key ? --> <!-- Password -->
+		<!-- These users/roles may use it for encryption -->
+		<!-- These users/roles may use it for decryption -->
+	</block>
+    <!--<block title="Authorize a user to use a deployed encrypted private RSA key file." endpoint="storage/passwords" entity="_new">
             <input field="realm">
                     <label>Path to key file</label>
                     <type>text</type>
@@ -14,5 +20,5 @@
                     <label>Password for decrypting the key file</label>
                     <type>password</type>
             </input>
-    </block>
+    </block>-->
 </setup>
