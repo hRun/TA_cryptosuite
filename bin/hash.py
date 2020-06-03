@@ -77,12 +77,12 @@ class hashCommand(StreamingCommand):
             except Exception as e:
                 self.logger.error('Failed to open specified salt file: {0}'.format(e))
                 return
-      
+
         # Perform field hashing
         #
         for event in events:
             for fieldname in self.fieldnames:
-                if fieldname=='_time':
+                if fieldname == '_time':
                     continue
                 try:
                     if self.saltfile:

@@ -1,4 +1,4 @@
-# SA-cryptosuite
+# TA-cryptosuite
 
 The Splunk® Support Add-On _Cryptosuite_ is the successor to the deprecated Support Add-On for Hypercrypto (https://github.com/my2ndhead/SA-hypercrypto).
 
@@ -45,17 +45,17 @@ In order for the add-on to be fully usable you'll need to create and store (acce
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key and IV length have to be 16/24/32 bytes respectively for 128/192/256 AES encryption.
 
-2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/keys/_). Ask him to set appropriate system-level file permissions (e.g. 0600).
+2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/keys/_). Ask him to set appropriate system-level file permissions (e.g. _0600_).
 
-3. Optional: If you plan to use an encrypted private RSA key, provide the corresponding password via the app's set up screen _Manage Apps>SA-cryptosuite>Set Up_ in order to be able to use the key. Passwords for encrypted private key files can be set per user and key file and get stored in Splunk's internal password storage. Currently supported algorithms for key encryption are AES256-CBC, DES-CBC and DES-EDE3-CBC.
+3. Optional: If you plan to use an encrypted private RSA key, provide the corresponding password via the app's set up screen _Manage Apps>SA-cryptosuite>Set Up_ in order to be able to use the key. Passwords for encrypted private key files can be set per user and key file and get stored in Splunk's internal password storage. Currently supported algorithms for key encryption are AES-256-CBC, DES-CBC and DES-EDE3-CBC.
 
 If you plan on salting your hashes, create and store (accessibly) salts like so:
 
 1. Generate a file containing a salt for spicing your hashes by putting whatever string you would like to use as salt into a plain ASCII file.
 
-2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/salts/_). Ask him to set appropriate system-level file permissions (e.g. 0600).
+2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/salts/_). Ask him to set appropriate system-level file permissions (e.g. _0600_).
 
-**Note**: Handling AES keys and salts this way is a security feature, since specifing the key/salt directly in the search would make them visible in the _internal index.
+**Note**: Handling AES keys and salts this way is a security feature, since specifing the key/salt directly in the search would make them visible in the \_internal index.
 
 ## Usage
 
@@ -68,7 +68,7 @@ _algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use
 
 _key_: Mandatory. Set to the name of the file containing your key and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/keys/_.
 
-_randpadding_: Optional, default: _true_. Only valid for _algo=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
+_randpadding_: Optional, default: _true_. Only valid for _algorithm=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
 
 Syntax: 
 *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512> [saltfile=\<file_name>] \<field-list>*
@@ -122,7 +122,6 @@ Unfortunately as of now there is no way around this if the encryption/decryption
 * Implement possibility for SHA3 hashing of fields/events
 * Implement PKCS#1 v2 support
 * Only allow keys/salts in lib directory
-* Remove keyencryption parameter from crypt command and replace by automatic detection
 * Test with Splunk 7.x
 * Potentially implement support for wildcards for field names
 
@@ -132,7 +131,10 @@ Unfortunately as of now there is no way around this if the encryption/decryption
 
 * Updated Splunk SDK for Python
 * Updated README and docs with soon-to-come changes
+* Using Splunk add-on builder now to have a nicer app setup and key management
+* Ensured Splunk 8 and Python 2/3 cross-compatilibity for hash command
 * Hashes will now be written to a new field with the name of the used algorithm
+* Removed keyencryption parameter from crypt command and replace by automatic detection
 
 *See https://github.com/my2ndhead/SA-hypercrypto for previous, deprecated versions.*
 

@@ -1,0 +1,216 @@
+{
+    "meta": {
+        "name": "TA-cryptosuite",
+        "displayName": "Cryptosuite",
+        "version": "2.0a",
+        "apiVersion": "3.0.0",
+        "restRoot": "TA_cryptosuite"
+    },
+    "pages": {
+        "configuration": {
+            "title": "Configuration",
+            "description": "Set up your add-on",
+            "tabs": [
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "field": "loglevel",
+                            "label": "Log level",
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG",
+                                        "value": "DEBUG"
+                                    },
+                                    {
+                                        "label": "INFO",
+                                        "value": "INFO"
+                                    },
+                                    {
+                                        "label": "WARNING",
+                                        "value": "WARNING"
+                                    },
+                                    {
+                                        "label": "ERROR",
+                                        "value": "ERROR"
+                                    },
+                                    {
+                                        "label": "CRITICAL",
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO"
+                        }
+                    ]
+                }
+            ]
+        },
+        "inputs": {
+            "title": "Key and Salt Management",
+            "description": "Manage your keys and salts",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "type_of_data",
+                        "label": "Type"
+                    },
+                    {
+                        "field": "authorized_roles",
+                        "label": "Authorized roles"
+                    },
+                    {
+                        "field": "authorized_users",
+                        "label": "Authorized users"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "type_of_data",
+                        "label": "Type of data"
+                    },
+                    {
+                        "field": "key_salt",
+                        "label": "Key / Salt"
+                    },
+                    {
+                        "field": "rsa_key_encryption_password",
+                        "label": "RSA key encryption password"
+                    },
+                    {
+                        "field": "authorized_roles",
+                        "label": "Authorized roles"
+                    },
+                    {
+                        "field": "authorized_users",
+                        "label": "Authorized users"
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "delete"
+                ]
+            },
+            "services": [
+                {
+                    "name": "crypto_settings",
+                    "title": "Crypto Settings",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter the (file) name you want your key/salt file to have ",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 3,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of file name should be between 3 and 100."
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "my_rsa_key.pem"
+                            }
+                        },
+                        {
+                            "field": "type_of_data",
+                            "label": "Type of Data",
+                            "help": "Select if you are uploading a new key file for encryption/decryption or a new salt file for hashing.",
+                            "required": true,
+                            "type": "radio",
+                            "defaultValue": "key",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "key",
+                                        "label": "New key"
+                                    },
+                                    {
+                                        "value": "salt",
+                                        "label": "New salt"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "key_salt",
+                            "label": "Key / Salt",
+                            "help": "Paste your key or salt here.",
+                            "required": true,
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of key field is 8192."
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "********"
+                            }
+                        },
+                        {
+                            "field": "rsa_key_encryption_password",
+                            "label": "RSA key encryption password",
+                            "help": "Optional: If you are uploading an AES-256-CBC, DES-CBC or DES-EDE3-CBC encrypted private RSA key file, specify the corresponding password here. Leave blank otherwise.",
+                            "required": false,
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of password is 8192"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "********"
+                            }
+                        },
+                        {
+                            "field": "authorized_roles",
+                            "label": "Authorized roles",
+                            "help": "Specify which roles should be authorized to use this key/salt file.",
+                            "required": false,
+                            "type": "multipleSelect",
+                            "options": {
+							    "delimiter": "~",
+                                "endpointUrl": "authorization/roles",
+                                "createSearchChoice": true
+                            }
+                        },
+                        {
+                            "field": "authorized_users",
+                            "label": "Authorized users",
+                            "help": "Specify which users should be authorized to use this key/salt file.",
+                            "required": false,
+                            "type": "multipleSelect",
+                            "options": {
+							    "delimiter": "~",
+                                "endpointUrl": "authentication/users",
+                                "createSearchChoice": true
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

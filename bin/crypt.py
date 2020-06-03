@@ -65,8 +65,9 @@ class cryptCommand(StreamingCommand):
     The key file "private.pem" is encrypted with AES-256-CBC, so the correspondig password has to be set via the app's set up screen prior to using the key.
     
     search index=summary sourcetype="server::access" | crypt mode=d algorithm=rsa key=private.pem username | table _time action username
-          
     """
+
+
 
     mode = Option(
         doc='''
@@ -92,174 +93,179 @@ class cryptCommand(StreamingCommand):
         **Description:** use random padding while encrypting with RSA or not''',
         require=False, validate=validators.Boolean())   
 
-    def stream(self, records):     
-      # Bind to current Splunk session
-      #
-      service = client.Service(token=self.metadata.searchinfo.session_key)
-      
-      # Get user objects
-      #
-      #user = self._metadata.searchinfo.username
-      xml_doc            = minidom.parseString(self.input_header["authString"])      
-      current_user       = xml_doc.getElementsByTagName('userId')[0].firstChild.nodeValue
-      kwargs             = {"sort_key":"realname", "search":str(current_user), "sort_dir":"asc"}
-      users              = service.users.list(count=-1,**kwargs)
-      user_authorization = 0 
 
-      # Check if a valid PEM file was provided
-      #
-      file_content = self.key.read()
-      file_type = 'PEM'
+    ## Helper to check if a user is privileged to do what he is trying to do
+    #
+    def validate_user(self, service):
+        auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_roles'].split('~')
+        auth_users = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_users'].split('~')
+        user       = self._metadata.searchinfo.username
+        mode       = 'can_encrypt' if self.mode == 'e' else 'can_decrypt'
 
-      if re.match(r'-----BEGIN .* KEY-----', file_content) is None:
-          raise RuntimeWarning('Currently only keys in PEM format are supported. Please specify a valid key file.')  
+        # Get user's roles
+        #
+        # TODO
 
-      # Handle encryption
-      #
-      if re.match(r'e', self.mode) is not None:
-          # Check key length
-          #
-          if len(file_content.rsplit('KEY-----\n')[1].rsplit('\n-----END')[0]) < 256:
-              raise RuntimeWarning('Using 1024 bit keys is unsafe and therefore forbidden. Consider generating larger keys.')
+        if mode not in roles:
+            raise RuntimeWarning('User "{0}" is not authorized to perform field encryption/decryption.'.format(user))
 
-          # Check if invoking user is authorized to encrypt data
-          #
-          for user in users:
-              if user.name == current_user:
-                  for role in user.role_entities:
-                      if re.match(r'can_encrypt', role.name) is not None:
-                          user_authorization = 1
-                      for imported_role in role.imported_roles:
-                          if re.match(r'can_encrypt', imported_role) is not None:
-                              user_authorization = 1
+        if user in auth_users:
+            return True
+        else:
+            for role in roles:
+                if role in auth_roles:
+                    return True
 
-          if user_authorization == 1:                  
-              # Decode key file's content
-              #
-              try:
-                  enc = rsa.key.PublicKey.load_pkcs1(file_content, file_type)
-              except:
-                  raise RuntimeWarning('Invalid key file has been provided for encryption.')
-
-              # Perform field encryption
-              #
-              new_record = ''
-              for record in records:
-                  for fieldname in self.fieldnames:
-                      if fieldname=='_time':
-                          continue
-
-                      # Split fields bigger than 256-11 bytes.
-                      #
-                      if len(record[fieldname]) > 245:
-                          for i in xrange(0,len(record[fieldname]),245):
-                              try:                          
-                                  # Do not use random padding for encryption
-                                  #
-                                  if re.match(r'False', str(self.randpadding)):                
-                                      new_record += base64.encodestring(rsa.encrypt_zero_padding(record[fieldname][i:i+245], enc)) 
-                                  # Use random padding for encryption
-                                  #
-                                  else:                               
-                                      new_record += base64.encodestring(rsa.encrypt_rand_padding(record[fieldname][i:i+245], enc))
-                              except:
-                                  raise RuntimeWarning('Encryption failed for field: %s' % fieldname)                                  
-                          record[fieldname] = new_record
-                          new_record = ''
-
-                      else:
-                          try:
-                              # Do not use random padding for encryption
-                              #
-                              if re.match(r'False', str(self.randpadding)):                          
-                                  record[fieldname] = base64.encodestring(rsa.encrypt_zero_padding(record[fieldname], enc))
-                              # Use random padding for encryption
-                              #
-                              else:                         
-                                  record[fieldname] = base64.encodestring(rsa.encrypt_rand_padding(record[fieldname], enc))
-                          except:
-                              raise RuntimeWarning('Encryption failed for field: %s' % fieldname)
-                  yield record
-
-          else:
-              raise RuntimeWarning('User \'%s\' is not authorized to perform field encryption.' % str(current_user))
+        return False
 
 
-      # Handle decryption
-      #
-      elif re.match(r'd', self.mode) is not None:
-          # Check if invoking user is authorized to decrypt data
-          #
-          for user in users:
-              if user.name == current_user:
-                  for role in user.role_entities:
-                      if re.match(r'can_decrypt', role.name) is not None:
-                          user_authorization = 1
-                      for imported_role in role.imported_roles:
-                          if re.match(r'can_decrypt', imported_role) is not None:
-                              user_authorization = 1
 
-          if user_authorization == 1:
-              # Handle key file decryption
-              #
-              if self.keyencryption:       
-                  # Get associated password from Splunk's password storage
-                  #
-                  kwargs = {"sort_key":"realm", "search":str(current_user), "sort_dir":"asc"}
-                  storage_passwords = service.storage_passwords.list(count=-1,**kwargs)
-                  got_password = 0
-                  for storage_password in storage_passwords:
-                      if storage_password.realm == self.key.name:
-                          got_password = 1
-                          password = storage_password.clear_password
-                          # Decode encrypted key file's content
-                          #
-                          read_password = lambda *args: str(password)
-                          dec = M2Crypto.RSA.load_key(self.key.name, read_password)
-                  if got_password == 0:
-                      raise ValueError('No password associated with the specified key file has been set for user \'%s\'.' % str(current_user))
+    ## Helper to load keys and run basic sanity checks
+    #
+    def load_key(self, service):
+        key = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['key_salt']
+        #key = service.storage_passwords.list(count=-1, search="???")[0].clear_password
+        
+        if self.algorithm == 'rsa':
+            if re.match(r'-----BEGIN .* KEY-----', key) is None:
+                raise RuntimeWarning('Currently only RSA keys in PEM format are supported. Please specify a valid key file.')
+            if len(key.rsplit('KEY-----\n')[1].rsplit('\n-----END')[0]) < 256:
+                raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
-              else:
-                  # Decode unencrypted key file's content
-                  #
-                  try:
-                      dec = M2Crypto.RSA.load_key(self.key.name)
-                  except:
-                      raise RuntimeWarning('Invalid or encrypted key file has been provided for decryption.')
+            if self.mode == 'e':
+                try:
+                    return rsa.key.PublicKey.load_pkcs1(key, 'PEM')
+                except Exception as e:
+                    raise RuntimeWarning('Failed to load specified public key: {0}'.format(e))
+            else:
+                if re.match(r'DEK-Info:\s+', key) is None:
+                    try:
+                        return M2Crypto.RSA.load_key(key)
+                    except:
+                        raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
+                else:
+                    try:
+                        return M2Crypto.RSA.load_key(key, service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['password'])
+                    except:
+                        raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
+        elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
+            # TODO
+            pass
+        else:
+            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
-              # Perform field decryption
-              #
-              new_record = ''
-              for record in records:
-                  for fieldname in self.fieldnames:
-                      if fieldname=='_time':
-                          continue
 
-                      # If field was split
-                      #
-                      if len(record[fieldname]) > 346:
-                          for chunk in record[fieldname].split('=\n'):
-                              if len(chunk) <= 1:
-                                  continue
-                              chunk = chunk.replace('\n', '') + '='
-                              try:
-                                  new_record += dec.private_decrypt(base64.decodestring(chunk), M2Crypto.RSA.pkcs1_padding)
-                              except:
-                                  raise RuntimeWarning('Decryption failed for field: %s' % fieldname)
-                          record[fieldname] = new_record
-                          new_record = ''
 
-                      else:
-                          try:
-                              record[fieldname] = dec.private_decrypt(base64.decodestring(record[fieldname]), M2Crypto.RSA.pkcs1_padding)
-                          except:
-                              raise RuntimeWarning('Decryption failed for field: %s' % fieldname)
-                  yield record
+    ## Helpers for encryption and decryption
+    #
+    def rsa_encrypt(fieldname, field, key):
+        # Split fields bigger than 256-11 bytes
+        if len(field) > 245:
+            chunk = ''
+            for i in xrange(0,len(field),245):
+                try:                          
+                    # Use random padding or not for RSA encryption
+                    if not self.randpadding:
+                        chunk += base64.encodestring(rsa.encrypt_zero_padding(field[i:i+245], key))
+                    else:                               
+                        chunk += base64.encodestring(rsa.encrypt_rand_padding(field[i:i+245], key))
+                except Exception as e:
+                    raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+            return chunk
+        else:
+            try:
+                # Use random padding or not for RSA encryption
+                if not self.randpadding:                          
+                    return base64.encodestring(rsa.encrypt_zero_padding(field, key))
+                else:                         
+                    return base64.encodestring(rsa.encrypt_rand_padding(field, key))
+            except Exception as e:
+                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
-          else:
-              raise RuntimeWarning('User \'%s\' is not authorized to perform field decryption.' % str(current_user))
+    def rsa_decrypt(fieldname, field, key):
+        # Rejoin split fields (fields bigger than 256-11 bytes)
+        if len(field) > 346:
+            for chunk in field.split('=\n'):
+                if len(chunk) <= 1:
+                    continue
+                chunk = chunk.replace('\n', '') + '='
+                try:
+                    chunk += key.private_decrypt(base64.decodestring(chunk), M2Crypto.RSA.pkcs1_padding)
+                except Exception as e:
+                    raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+            return chunk
+        else:
+            try:
+                return key.private_decrypt(base64.decodestring(field), M2Crypto.RSA.pkcs1_padding)
+            except Exception as e:
+                raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
-      else:
-          raise ValueError('Invalid mode has been set: %s.' % mode)
+    def aes_encrypt(fieldname, field, key):
+        # TODO
+        pass
+    def aes_decrypt(fieldname, field, key):
+        # TODO
+        pass
+
+
+
+    ## Sort of "__main__"
+    #
+    def stream(self, events):     
+        # Bind to Splunk session and initialize variables
+        service = client.Service(token=self.metadata.searchinfo.session_key)
+
+        # ENCRYPTION
+        #
+        if self.mode == 'e':
+            # Continue if user is authorized for encryption and key usage
+            if self.validate_user(service):
+                # Load key and do sanity checks
+                key = load_key(service)
+        
+                # Perform field encryption
+                for event in events:
+                    for fieldname in self.fieldnames:
+                        # Always skip _time
+                        if fieldname=='_time':
+                            continue
+                            
+                        if self.algorithm == 'rsa':
+                            event[fieldname] = rsa_encrypt(fieldname, event[fieldname], key)
+                        elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
+                            event[fieldname] = aes_encrypt(fieldname, event[fieldname], key)
+                        else:
+                            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+                    yield event
+            else:
+                raise RuntimeWarning('User "{0}" is not authorized to use the specified encryption key.'.format(user))
+
+        # DECRYPTION
+        #
+        elif self.mode == 'd':
+            # Continue if user is authorized for decryption and key usage
+            if self.validate_user(service):
+                # Load key and do sanity checks
+                key = load_key(service)
+
+                # Perform field decryption
+                chunk = ''
+                for event in events:
+                    for fieldname in self.fieldnames:
+                        if fieldname=='_time':
+                            continue
+                        
+                        if self.algorithm == 'rsa':
+                            event[fieldname] = rsa_decrypt(fieldname, event[fieldname], key)
+                        elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
+                            event[fieldname] = aes_decrypt(fieldname, event[fieldname], key)
+                        else:
+                            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+                    yield event
+            else:
+                raise RuntimeWarning('User "{0}" is not authorized to use the specified decryption key.'.format(user))
+
+        else:
+            raise ValueError('Invalid mode "{0}" used. Allowed values are "e" and "d".'.format(self.mode))
 
 dispatch(cryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)
