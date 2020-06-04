@@ -114,6 +114,7 @@ Unfortunately as of now there is no way around this if the encryption/decryption
 
 ## TODO / Known Issues
 
+* Update README again to match add-on builder use
 * Major overhaul for Splunk 8 compatibility
 * Ensured cross-compatibility for Python 2 and 3
 * Implement per-user and per-key key usability
@@ -121,8 +122,10 @@ Unfortunately as of now there is no way around this if the encryption/decryption
 * Implement possibility for AES-128/192/256-CBC field/event encryption & decryption
 * Implement possibility for SHA3 hashing of fields/events
 * Implement PKCS#1 v2 support
-* Only allow keys/salts in lib directory
+* Disable helper input by default
+* Remove keyencryption parameter from crypt command and replace by automatic detection
 * Test with Splunk 7.x
+* Enhance performance
 * Potentially implement support for wildcards for field names
 
 ## History
@@ -130,11 +133,10 @@ Unfortunately as of now there is no way around this if the encryption/decryption
 ### v2.0a
 
 * Updated Splunk SDK for Python
+* Using custom search command protocol v2 now
 * Updated README and docs with soon-to-come changes
-* Using Splunk add-on builder now to have a nicer app setup and key management
 * Ensured Splunk 8 and Python 2/3 cross-compatilibity for hash command
 * Hashes will now be written to a new field with the name of the used algorithm
-* Removed keyencryption parameter from crypt command and replace by automatic detection
 
 *See https://github.com/my2ndhead/SA-hypercrypto for previous, deprecated versions.*
 

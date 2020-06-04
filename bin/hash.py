@@ -13,11 +13,11 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import base64
 import hashlib
+import json
 import sys
-import re
 
+import splunklib.client as client
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 
 @Configuration()
@@ -52,33 +52,76 @@ class hashCommand(StreamingCommand):
         doc='''
         **Syntax:** **saltfile=***<file_name>*
         **Description:** file which holds the salt to use''',
-        require=False) 
+        require=False)
 
+
+
+    ## Helper to check if a user is privileged to do what he is trying to do
+    #
+    def validate_user(self, service):
+        auth_roles = []
+        auth_users = []
+        user       = self._metadata.searchinfo.username
+        roles      = []
+        
+        try:
+            auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.saltfile)]['authorized_roles'].split('~')
+        except AttributeError:
+            pass
+        try:
+            auth_users = service.confs['inputs']['crypto_settings://{0}'.format(self.saltfile)]['authorized_users'].split('~')
+        except AttributeError:
+            pass
+
+        for role in service.users[self._metadata.searchinfo.username]['role_entities']:
+            roles.append(role.name)
+            for imported_role in role.imported_roles:
+                roles.append(imported_role)
+
+        if user in auth_users:
+            return True
+        else:
+            for role in roles:
+                if role in auth_roles:
+                    return True
+
+        return False
+
+
+
+    ## Helper to load salts
+    #
+    def load_salt(self, service):
+        stored_salt = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.saltfile))
+        salt_dict   = ""
+
+        for chunk in stored_salt:
+            salt_dict += chunk.clear_password
+        salt_dict = json.loads(salt_dict.split('``splunk_cred_sep``', 1)[0])
+        return salt_dict['key_salt']
+
+
+
+    ## Sort of "__main__"
+    #
     def stream(self, events):
+        # Bind to Splunk session and initialize variables
+        service = client.Service(token=self.metadata.searchinfo.session_key)
+        salt    = ""
 
-        # Get salt if saltfile was provided
-        #
+        # Get salt if "saltfile" was set
         if self.saltfile:
+            # Check if configuration exists for specified salt
             try:
-                if __file__.startswith('/'):
-                    path = __file__.split('/')
-                    path.pop()
-                    path.pop()
-                    path.extend(['lib', 'salts', '{}'.format(self.saltfile)])
-                    f = open('/'.join(path), 'r')
-                else:
-                    path = __file__.split('\\')
-                    path.pop()
-                    path.pop()
-                    path.extend(['lib', 'salts', '{}'.format(self.saltfile)])
-                    f = open('\\'.join(path), 'r')
-                salt = f.readline()
-                f.close()
-            except Exception as e:
-                self.logger.error('Failed to open specified salt file: {0}'.format(e))
-                return
+                service.confs['inputs']['crypto_settings://{0}'.format(self.saltfile)]
+            except:
+                raise RuntimeWarning('Specified salt file "{0}" does not exist. Please check the spelling of your specified salt name or your configured salts.'.format(self.saltfile))
 
-        # Perform field hashing
+            # Continue if user is authorized for salt usage
+            if self.validate_user(service):
+                salt = self.load_salt(service)
+
+        # HASH
         #
         for event in events:
             for fieldname in self.fieldnames:
