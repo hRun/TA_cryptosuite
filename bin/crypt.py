@@ -18,6 +18,7 @@ from __future__      import print_function
 #import base64
 #import binascii
 #import M2Crypto
+import cryptography
 import json
 import sys
 import re
@@ -136,13 +137,14 @@ class cryptCommand(StreamingCommand):
         key_dict = json.loads(key_dict.split('``splunk_cred_sep``', 1)[0])
 
         if self.algorithm == 'rsa':
-            if re.match(r'-----BEGIN .* KEY-----', key_dict['key_salt']) is None:
+            if not key_dict['key_salt'].startswith('-----BEGIN RSA '):
                 raise RuntimeWarning('Currently only RSA keys in PEM format are supported. Please specify a valid key file.')
-            if len(key_dict['key_salt'].rsplit('KEY-----\n')[1].rsplit('\n-----END')[0]) < 256:
+            if len(key_dict['key_salt'].strip('\n').split('-----')[-3]) < 824:
                 raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
             if self.mode == 'e':
                 try:
+                    # TODO
                     return rsa.key.PublicKey.load_pkcs1(key_dict['key_salt'], 'PEM')
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified public key: {0}'.format(e))
@@ -248,9 +250,9 @@ class cryptCommand(StreamingCommand):
                             continue
                             
                         if self.algorithm == 'rsa':
-                            event[fieldname] = rsa_encrypt(fieldname, event[fieldname], key)
+                            event[fieldname] = self.rsa_encrypt(fieldname, event[fieldname], key)
                         elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
-                            event[fieldname] = aes_encrypt(fieldname, event[fieldname], key)
+                            event[fieldname] = self.aes_encrypt(fieldname, event[fieldname], key)
                         else:
                             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
                     yield event
@@ -272,9 +274,9 @@ class cryptCommand(StreamingCommand):
                             continue
                         
                         if self.algorithm == 'rsa':
-                            event[fieldname] = rsa_decrypt(fieldname, event[fieldname], key)
+                            event[fieldname] = self.rsa_decrypt(fieldname, event[fieldname], key)
                         elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
-                            event[fieldname] = aes_decrypt(fieldname, event[fieldname], key)
+                            event[fieldname] = self.aes_decrypt(fieldname, event[fieldname], key)
                         else:
                             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
                     yield event

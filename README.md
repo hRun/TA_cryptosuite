@@ -6,8 +6,8 @@ It implements and extends the custom search commands _crypt_ and _hash_ for encr
 
 * Encrypt/decrypt fields or complete events during search time using RSA or AES-128/192/256-CBC
 * Hash fields or complete events during search time using md5 / sha1 / sha2 (sha224/sha256/sha384/sha512)
-* Manage access to encryption and decryption functionality on a per-user basis via two shipped roles
-* Manage useable encryption/decryption keys on a per-user or per-key basis via the app's setup screen
+* Manage access to encryption and decryption functionality on a per-user or per-role basis via two shipped roles
+* Manage useable encryption/decryption keys on a per-user or per-role basis via the app's configuration screen
 
 Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.0.2.1.
 
@@ -27,7 +27,7 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 ### Requirements
 
-In order for the add-on to be fully usable you'll need to create and store (accessibly) cryptographic keys. Here's how:
+In order for the add-on to be fully usable you'll need to create and upload cryptographic keys. Here's how. You can also find some examples and tips in the _examples/_ directory.
 
 1. Generate a valid RSA key pair (optionally with key encryption) and store it in PEM format. Or create a "key file" for AES.
 
@@ -37,7 +37,7 @@ In order for the add-on to be fully usable you'll need to create and store (acce
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_openssl rsa -in private.pem -outform PEM -RSAPublicKey_out -out public.pem_
       
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that using 1024 bit keys is considered unsafe and therefore forbidden.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that using 1024 bit keys is considered unsafe and therefore not supported by the app.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example "key file" creation for AES:
 
@@ -45,17 +45,41 @@ In order for the add-on to be fully usable you'll need to create and store (acce
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key and IV length have to be 16/24/32 bytes respectively for 128/192/256 AES encryption.
 
-2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/keys/_). Ask him to set appropriate system-level file permissions (e.g. _0600_).
+2. Go to the app's configuration dashboard in your preferred browser. Click "Create New Input".
 
-3. Optional: If you plan to use an encrypted private RSA key, provide the corresponding password via the app's set up screen _Manage Apps>SA-cryptosuite>Set Up_ in order to be able to use the key. Passwords for encrypted private key files can be set per user and key file and get stored in Splunk's internal password storage. Currently supported algorithms for key encryption are AES-256-CBC, DES-CBC and DES-EDE3-CBC.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Name_: Enter the name you would like the your key to be accessible through. E.g. the original key file's name.
 
-If you plan on salting your hashes, create and store (accessibly) salts like so:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Type of Data_: Select "New key".
 
-1. Generate a file containing a salt for spicing your hashes by putting whatever string you would like to use as salt into a plain ASCII file.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Key/Salt_: Copy-paste the contents of your generated key file here. Your key will be stored encrypted in _passwords.conf_.
 
-2. Ask your Splunk admin to put the created file(s) into this app's lib directory (_$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/salts/_). Ask him to set appropriate system-level file permissions (e.g. _0600_).
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_RSA key encryption password_: Only required if you are currently configuring an encrypted private RSA key. Supportd key encryption algorithms are AES-256-CBC, DES-CBC and DES-EDE3-CBC.
 
-**Note**: Handling AES keys and salts this way is a security feature, since specifing the key/salt directly in the search would make them visible in the \_internal index.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Authorized roles_: Select which roles you want to grant permissions to use the key. Will be ORed with authorized users. Users/roles will also require the "can_encrypt" and/or "can_decrypt" role in order to use the _crypt_ command in the first place.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Authorized users_: Select which users you want to grant permissions to use the key. Will be ORed with authorized roles. Users/roles will also require the "can_encrypt" and/or "can_decrypt" role in order to use the _crypt_ command in the first place.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Note**: For a RSA key pair, you'll have to do this twice. Once for the private key and once for the public key.
+
+
+If you plan on salting your hashes, create and store upload salts like so:
+
+1. Go to the app's configuration dashboard in your preferred browser. Click "Create New Input".
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Name_: Enter the name you would like the your salt to be accessible through.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Type of Data_: Select "New salt".
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Key/Salt_: Enter or copy-paste your salt here. It will be stored encrypted in _passwords.conf_.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_RSA key encryption password_: Leave empty.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Authorized roles_: Select which roles you want to grant permissions to use the salt. Will be ORed with authorized users.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Authorized users_: Select which users you want to grant permissions to use the salt. Will be ORed with authorized roles.
+
+
+**Note**: Handling keys and salts this way is a security feature, since specifing the key/salt directly in a Splunk search directly would make them visible in the \_internal index.
 
 ## Usage
 
@@ -66,7 +90,7 @@ _mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field 
 
 _algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
 
-_key_: Mandatory. Set to the name of the file containing your key and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/keys/_.
+_key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
 
 _randpadding_: Optional, default: _true_. Only valid for _algorithm=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
 
@@ -75,7 +99,7 @@ Syntax:
 
 _algorithm_: Mandatory. Set to the hashing algorithm you would like to use.
 
-_saltfile_: Optional. Set to the name of a file containing a salt and stored under _$SPLUNK\_HOME/etc/apps/SA-cryptosuite/lib/salts/_.
+_saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
    
 ### Examples
 
@@ -100,17 +124,20 @@ Hash a raw event containing some malware threat artifact using sha256.
 * Attempts to encrypt or hash _\_time_ will be ignored since Splunk always expects a valid _\_time_ field.
 * Wildcards for field names are not supported (yet).
 * Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
-* Full password management via the set up screen has not been implemented yet, since Splunk does not provide a way to do so via SimpleXML. So you can not update stored passwords at this point in time. Manage your stored passwords in SA-cryptosuite/local/app.conf.
+* To implement proper key/salt management (without relying on my weak JavaScript skills for a management dashboard) the add-on leverages the comfort Splunk Add-On Builder grants. \
+This is why your key/salt configurations are stored as modular input configurations. Don't worry, they are not used as such. A future version of the add-on might implement this better.
    
-#### Security considerations
+#### (Important) Security Considerations
 
 * Granting a user or role the role 'can_encrypt' or 'can_decrypt' needed for usage of the crypt command will also grant them the capability 'list_storage_passwords'. \
 This enables the technically savvy user to potentially read more secrets via Splunk's REST API than desirable. \
-Unfortunately as of now there is no way around this if the encryption/decryption keys used for this app's function should not be stored in plaintext on disk.
+Unfortunately as of now there is no way around this if the encryption/decryption keys and salts used for this app's function should not be stored in plaintext on disk. \
+You can argue this way or that. My assumption is that only high-privileged users will use the crypto functionality in the first place, and thus prefferred encrypted keys over potentially exessive permissions.
+* The keys and salts you upload are stored encrypted in _passwords.conf_. However to quote a Splunk blog post: "[...] Since the encrypted data and the encryption key are stored on the same machine, cryptographically this is equivalent to obfuscation. While some people might argue that this is very weak encryption, it is the best we can do with storing the encrypted data and encryption key on the same machine and it is definitely better than clear text passwords [...]"[3]
 * Disabling random padding when encrypting with RSA is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
 * The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split into blocks. This enables certain attacks to the RSA crypto system. Therefore it is recommended to always set randpadding=true when encrypting large fields.
-* It is not recommended to use MD5 or SHA1 since these hashing algorithms are not seen as safe anymore.
-* Using 1024 bit RSA keys is generally considered unsafe and therefore not possible with the add-on.
+* It is not recommended to use MD5 or SHA1 (on passwords) since these hashing algorithms are not seen as safe anymore.
+* Using 1024 bit RSA keys is generally considered unsafe and therefore not possible using with the add-on.
 
 ## TODO / Known Issues
 
@@ -151,11 +178,13 @@ The crypt command uses a slightly modified version of Sybren A. Stuevel's (sybre
 This roughly translates to 
 
 * You may freely use, share and adapt this work non-commercially as long as you give appropriate credit. When adapting or sharing, this needs to happen under the same license, changes should be indicated.
-* You may freely use this work in a commercial environment as long as the use is not primarily intended for commercial advantage or monetary compensation. You may not sell this work. Neither standalone nor within an application bundle.
+* You may freely use this work in a commercial environment as long as the use is not primarily intended for commercial advantage or monetary compensation. YOU MAY NOT SELL THIS WORK. Neither standalone nor within an application bundle.
 
-Please reffer to the full license for completeness and correctness.
+Please reffer to the full license for completeness and correctness. Feel free to contact me should you plan to use the add-on outside these terms.
 
 ## References
 [1] https://github.com/sybrenstuvel/python-rsa
 
 [2] http://creativecommons.org/licenses/by-nc-sa/4.0/
+
+[3] https://www.splunk.com/en_us/blog/security/storing-encrypted-credentials.html
