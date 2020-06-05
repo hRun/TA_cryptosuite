@@ -4,26 +4,29 @@ from __future__ import absolute_import
 
 Copyright (c) 1999-2004 Ng Pheng Siong. All rights reserved."""
 
-from M2Crypto import m2
+import logging
 
-from cStringIO import StringIO
-# Deprecated
-from M2Crypto.m2 import bio_do_handshake as bio_do_ssl_handshake
+from M2Crypto import m2, py27plus, six
+if py27plus:
+    from typing import AnyStr, Callable, Iterable, Optional, Union  # noqa
+
+log = logging.getLogger('BIO')
 
 
-class BIOError(Exception):
+class BIOError(ValueError):
     pass
+
 
 m2.bio_init(BIOError)
 
 
-class BIO:
-
+class BIO(object):
     """Abstract object interface to the BIO API."""
 
     m2_bio_free = m2.bio_free
 
     def __init__(self, bio=None, _pyfree=0, _close_cb=None):
+        # type: (Optional[BIO], int, Optional[Callable]) -> None
         self.bio = bio
         self._pyfree = _pyfree
         self._close_cb = _close_cb
@@ -41,36 +44,42 @@ class BIO:
     bio_ptr = _ptr
 
     def fileno(self):
+        # type: () -> int
         return m2.bio_get_fd(self.bio)
 
     def readable(self):
+        # type: () -> bool
         return not self.closed
 
     def read(self, size=None):
+        # type: (int) -> Union[bytes, bytearray]
         if not self.readable():
             raise IOError('cannot read')
         if size is None:
-            buf = StringIO()
+            buf = bytearray()
             while 1:
                 data = m2.bio_read(self.bio, 4096)
                 if not data:
                     break
-                buf.write(data)
-            return buf.getvalue()
+                buf += data
+            return buf
         elif size == 0:
-            return ''
+            return b''
         elif size < 0:
             raise ValueError('read count is negative')
         else:
-            return m2.bio_read(self.bio, size)
+            return bytes(m2.bio_read(self.bio, size))
 
     def readline(self, size=4096):
+        # type: (int) -> bytes
         if not self.readable():
             raise IOError('cannot read')
         buf = m2.bio_gets(self.bio, size)
-        return buf
+        buf = '' if buf is None else buf
+        return six.ensure_binary(buf)
 
     def readlines(self, sizehint='ignored'):
+        # type: (Union[AnyStr, int]) -> Iterable[bytes]
         if not self.readable():
             raise IOError('cannot read')
         lines = []
@@ -78,35 +87,54 @@ class BIO:
             buf = m2.bio_gets(self.bio, 4096)
             if buf is None:
                 break
-            lines.append(buf)
+            lines.append(six.ensure_binary(buf))
         return lines
 
     def writeable(self):
+        # type: () -> bool
         return (not self.closed) and (not self.write_closed)
 
     def write(self, data):
+        # type: (AnyStr) -> int
+        """Write data to BIO.
+
+        :return: either data written, or [0, -1] for nothing written,
+                 -2 not implemented
+        """
         if not self.writeable():
             raise IOError('cannot write')
+        if isinstance(data, six.text_type):
+            data = data.encode('utf8')
         return m2.bio_write(self.bio, data)
 
     def write_close(self):
+        # type: () -> None
         self.write_closed = 1
 
     def flush(self):
+        # type: () -> None
+        """Flush the buffers.
+
+        :return: 1 for success, and 0 or -1 for failure
+        """
         m2.bio_flush(self.bio)
 
     def reset(self):
-        """
-        Sets the bio to its initial state
+        # type: () -> int
+        """Set the bio to its initial state.
+
+        :return: 1 for success, and 0 or -1 for failure
         """
         return m2.bio_reset(self.bio)
 
     def close(self):
+        # type: () -> None
         self.closed = 1
         if self._close_cb:
             self._close_cb()
 
     def should_retry(self):
+        # type: () -> int
         """
         Can the call be attempted again, or was there an error
         ie do_handshake
@@ -115,30 +143,34 @@ class BIO:
         return m2.bio_should_retry(self.bio)
 
     def should_read(self):
-        """
-        Returns whether the cause of the condition is the bio
-        should read more data
-        """
+        # type: () -> int
+        """Should we read more data?"""
+
         return m2.bio_should_read(self.bio)
 
     def should_write(self):
-        """
-        Returns whether the cause of the condition is the bio
-        should write more data
-        """
+        # type: () -> int
+        """Should we write more data?"""
         return m2.bio_should_write(self.bio)
+
+    def tell(self):
+        """Return the current offset."""
+        return m2.bio_tell(self.bio)
+
+    def seek(self, off):
+        """Seek to the specified absolute offset."""
+        return m2.bio_seek(self.bio, off)
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
+        # type: (*Any) -> int
         self.close()
 
 
 class MemoryBuffer(BIO):
-
-    """
-    Object interface to BIO_s_mem.
+    """Object interface to BIO_s_mem.
 
     Empirical testing suggests that this class performs less well than
     cStringIO, because cStringIO is implemented in C, whereas this class
@@ -148,16 +180,22 @@ class MemoryBuffer(BIO):
     """
 
     def __init__(self, data=None):
-        BIO.__init__(self)
+        # type: (Optional[bytes]) -> None
+        super(MemoryBuffer, self).__init__(self)
+        if data is not None and not isinstance(data, bytes):
+            raise TypeError(
+                "data must be bytes or None, not %s" % (type(data).__name__, ))
         self.bio = m2.bio_new(m2.bio_s_mem())
         self._pyfree = 1
         if data is not None:
             m2.bio_write(self.bio, data)
 
     def __len__(self):
+        # type: () -> int
         return m2.bio_ctrl_pending(self.bio)
 
     def read(self, size=0):
+        # type: (int) -> bytes
         if not self.readable():
             raise IOError('cannot read')
         if size:
@@ -169,41 +207,84 @@ class MemoryBuffer(BIO):
     getvalue = read_all = read
 
     def write_close(self):
-        self.write_closed = 1
+        # type: () -> None
+        super(MemoryBuffer, self).write_close()
         m2.bio_set_mem_eof_return(self.bio, 0)
 
     close = write_close
 
 
 class File(BIO):
+    """Object interface to BIO_s_pyfd.
 
-    """
-    Object interface to BIO_s_fp.
-
-    This class interfaces Python to OpenSSL functions that expect BIO *. For
+    This class interfaces Python to OpenSSL functions that expect BIO. For
     general file manipulation in Python, use Python's builtin file object.
     """
 
-    def __init__(self, pyfile, close_pyfile=1):
-        BIO.__init__(self, _pyfree=1)
+    def __init__(self, pyfile, close_pyfile=1, mode='rb'):
+        # type: (Union[io.BytesIO, AnyStr], int, AnyStr) -> None
+        super(File, self).__init__(self, _pyfree=1)
+
+        if isinstance(pyfile, six.string_types):
+            pyfile = open(pyfile, mode)
+
+        # This is for downward compatibility, but I don't think, that it is
+        # good practice to have two handles for the same file. Whats about
+        # concurrent write access? Last write, last wins? Especially since Py3
+        # has its own buffer management. See:
+        #
+        #  https://docs.python.org/3.3/c-api/file.html
+        #
+        pyfile.flush()
+        self.fname = pyfile.name
         self.pyfile = pyfile
+        # Be wary of https://github.com/openssl/openssl/pull/1925
+        # BIO_new_fd is NEVER to be used before OpenSSL 1.1.1
+        if hasattr(m2, "bio_new_pyfd"):
+            self.bio = m2.bio_new_pyfd(pyfile.fileno(), m2.bio_noclose)
+        else:
+            self.bio = m2.bio_new_pyfile(pyfile, m2.bio_noclose)
+
         self.close_pyfile = close_pyfile
-        self.bio = m2.bio_new_fp(pyfile, 0)
+        self.closed = False
+
+    def flush(self):
+        # type: () -> None
+        super(File, self).flush()
+        self.pyfile.flush()
 
     def close(self):
-        self.closed = 1
+        # type: () -> None
+        self.flush()
+        super(File, self).close()
         if self.close_pyfile:
             self.pyfile.close()
 
+    def reset(self):
+        # type: () -> int
+        """Set the bio to its initial state.
+
+        :return: 0 for success, and -1 for failure
+        """
+        return super(File, self).reset()
+
+    def __del__(self):
+        if not self.closed:
+            m2.bio_free(self.bio)
+
 
 def openfile(filename, mode='rb'):
-    return File(open(filename, mode))
+    # type: (AnyStr, AnyStr) -> File
+    try:
+        f = open(filename, mode)
+    except IOError as ex:
+        raise BIOError(ex.args)
+
+    return File(f)
 
 
 class IOBuffer(BIO):
-
-    """
-    Object interface to BIO_f_buffer.
+    """Object interface to BIO_f_buffer.
 
     Its principal function is to be BIO_push()'ed on top of a BIO_f_ssl, so
     that makefile() of said underlying SSL socket works.
@@ -213,7 +294,8 @@ class IOBuffer(BIO):
     m2_bio_free = m2.bio_free
 
     def __init__(self, under_bio, mode='rwb', _pyfree=1):
-        BIO.__init__(self, _pyfree=_pyfree)
+        # type: (BIO, str, int) -> None
+        super(IOBuffer, self).__init__(self, _pyfree=_pyfree)
         self.io = m2.bio_new(m2.bio_f_buffer())
         self.bio = m2.bio_push(self.io, under_bio._ptr())
         # This reference keeps the underlying BIO alive while we're not closed.
@@ -224,19 +306,18 @@ class IOBuffer(BIO):
             self.write_closed = 1
 
     def __del__(self):
+        # type: () -> None
         if getattr(self, '_pyfree', 0):
             self.m2_bio_pop(self.bio)
         self.m2_bio_free(self.io)
 
     def close(self):
+        # type: () -> None
         BIO.close(self)
 
 
 class CipherStream(BIO):
-
-    """
-    Object interface to BIO_f_cipher.
-    """
+    """Object interface to BIO_f_cipher."""
 
     SALT_LEN = m2.PKCS5_SALT_LEN
 
@@ -244,41 +325,52 @@ class CipherStream(BIO):
     m2_bio_free = m2.bio_free
 
     def __init__(self, obio):
-        BIO.__init__(self, _pyfree=1)
+        # type: (BIO) -> None
+        super(CipherStream, self).__init__(self, _pyfree=1)
         self.obio = obio
         self.bio = m2.bio_new(m2.bio_f_cipher())
         self.closed = 0
 
     def __del__(self):
+        # type: () -> None
         if not getattr(self, 'closed', 1):
             self.close()
 
     def close(self):
+        # type: () -> None
         self.m2_bio_pop(self.bio)
         self.m2_bio_free(self.bio)
         self.closed = 1
 
     def write_close(self):
+        # type: () -> None
         self.obio.write_close()
 
     def set_cipher(self, algo, key, iv, op):
+        # type: (str, AnyStr, AnyStr, int) -> None
         cipher = getattr(m2, algo, None)
         if cipher is None:
             raise ValueError('unknown cipher', algo)
-        m2.bio_set_cipher(self.bio, cipher(), key, iv, op)
+        else:
+            if not isinstance(key, bytes):
+                key = key.encode('utf8')
+            if not isinstance(iv, bytes):
+                iv = iv.encode('utf8')
+        m2.bio_set_cipher(self.bio, cipher(), key, iv, int(op))
         m2.bio_push(self.bio, self.obio._ptr())
 
 
 class SSLBio(BIO):
-    """
-    Object interface to BIO_f_ssl
-    """
+    """Object interface to BIO_f_ssl."""
+
     def __init__(self, _pyfree=1):
-        BIO.__init__(self, _pyfree)
+        # type: (int) -> None
+        super(SSLBio, self).__init__(self, _pyfree=_pyfree)
         self.bio = m2.bio_new(m2.bio_f_ssl())
         self.closed = 0
 
     def set_ssl(self, conn, close_flag=m2.bio_noclose):
+        # type: (Connection, int) -> None
         """
         Sets the bio to the SSL pointer which is
         contained in the connection object.
@@ -289,8 +381,8 @@ class SSLBio(BIO):
             conn.set_ssl_close_flag(m2.bio_close)
 
     def do_handshake(self):
-        """
-        Do the handshake.
+        # type: () -> int
+        """Do the handshake.
 
         Return 1 if the handshake completes
         Return 0 or a negative number if there is a problem

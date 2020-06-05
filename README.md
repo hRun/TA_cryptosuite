@@ -146,8 +146,8 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Major overhaul for Splunk 8 compatibility
 * Ensured cross-compatibility for Python 2 and 3
 * Implement possibility for AES-128/192/256-CBC field/event encryption & decryption
-* Implement PKCS#1 v2 support
-* Disable helper input by default
+* Re-implement non-random padding into RSA lib or remove entirely?
+* Disable helper inputs by default
 * Test with Splunk 7.x
 * Enhance performance
 * Potentially implement support for wildcards for field names

@@ -65,7 +65,7 @@ class hashCommand(StreamingCommand):
         auth_users = []
         user       = self._metadata.searchinfo.username
         roles      = []
-        
+
         try:
             auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.salt)]['authorized_roles'].split('~')
         except AttributeError:

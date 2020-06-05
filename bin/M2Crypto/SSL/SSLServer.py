@@ -4,27 +4,34 @@ from __future__ import absolute_import, print_function
 
 Copyright (c) 1999-2002 Ng Pheng Siong. All rights reserved."""
 
-# Python
-import SocketServer
-import socket  # noqa
 
 # M2Crypto
 from M2Crypto.SSL import SSLError
 from M2Crypto.SSL.Connection import Connection
-from M2Crypto import m2  # noqa
+from M2Crypto.SSL.Context import Context  # noqa
+from M2Crypto import six  # noqa
+from M2Crypto import util  # noqa
+from M2Crypto.six.moves.socketserver import (BaseServer, TCPServer,
+                                             ThreadingMixIn)
+import os
+if os.name != 'nt':
+   from M2Crypto.six.moves.socketserver import ForkingMixIn
+from socket import socket  # noqa
+if util.py27plus:
+    from typing import Union  # noqa
 
 __all__ = ['SSLServer', 'ForkingSSLServer', 'ThreadingSSLServer']
 
 
-class SSLServer(SocketServer.TCPServer):
+class SSLServer(TCPServer):
     def __init__(self, server_address, RequestHandlerClass, ssl_context,  # noqa
                  bind_and_activate=True):
+        # type: (util.AddrType, socketserver.BaseRequestHandler, Context, bool) -> None
         """
         Superclass says: Constructor. May be extended, do not override.
         This class says: Ho-hum.
         """
-        SocketServer.BaseServer.__init__(self, server_address,
-                                         RequestHandlerClass)
+        BaseServer.__init__(self, server_address, RequestHandlerClass)
         self.ssl_ctx = ssl_context
         self.socket = Connection(self.ssl_ctx)
         if bind_and_activate:
@@ -32,6 +39,7 @@ class SSLServer(SocketServer.TCPServer):
             self.server_activate()
 
     def handle_request(self):
+        # type: () -> None
         request = None
         client_address = None
         try:
@@ -42,15 +50,17 @@ class SSLServer(SocketServer.TCPServer):
             self.handle_error(request, client_address)
 
     def handle_error(self, request, client_address):
-        print('-'*40)
+        # type: (Union[socket, Connection], util.AddrType) -> None
+        print('-' * 40)
         import traceback
         traceback.print_exc()
-        print('-'*40)
+        print('-' * 40)
 
 
-class ForkingSSLServer(SocketServer.ForkingMixIn, SSLServer):
+class ThreadingSSLServer(ThreadingMixIn, SSLServer):
     pass
 
 
-class ThreadingSSLServer(SocketServer.ThreadingMixIn, SSLServer):
-    pass
+if os.name != 'nt':
+    class ForkingSSLServer(ForkingMixIn, SSLServer):
+        pass

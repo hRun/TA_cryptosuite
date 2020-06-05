@@ -6,7 +6,9 @@ Copyright (c) 1999-2003 Ng Pheng Siong. All rights reserved."""
 
 import sys
 
-from M2Crypto import m2
+from M2Crypto import m2, util
+if util.py27plus:
+    from typing import Any, List  # noqa
 
 __all__ = ['unknown_issuer', 'ssl_verify_callback_stub', 'ssl_verify_callback',
            'ssl_verify_callback_allow_unknown_ca', 'ssl_info_callback']
@@ -25,9 +27,11 @@ unknown_issuer = [
 
 
 def ssl_verify_callback(ssl_ctx_ptr, x509_ptr, errnum, errdepth, ok):
+    # type: (bytes, bytes, int, int, int) -> int
     # Deprecated
-    from M2Crypto.SSL import Context
-    ssl_ctx = Context.map()[long(ssl_ctx_ptr)]
+
+    from M2Crypto.SSL.Context import Context
+    ssl_ctx = Context.ctxmap()[int(ssl_ctx_ptr)]
     if errnum in unknown_issuer:
         if ssl_ctx.get_allow_unknown_ca():
             sys.stderr.write("policy: %s: permitted...\n" %
@@ -44,6 +48,7 @@ def ssl_verify_callback(ssl_ctx_ptr, x509_ptr, errnum, errdepth, ok):
 
 
 def ssl_verify_callback_allow_unknown_ca(ok, store):
+    # type: (int, Any) -> int
     errnum = store.get_error()
     if errnum in unknown_issuer:
         ok = 1
@@ -52,22 +57,23 @@ def ssl_verify_callback_allow_unknown_ca(ok, store):
 
 # Cribbed from OpenSSL's apps/s_cb.c.
 def ssl_info_callback(where, ret, ssl_ptr):
+    # type: (int, int, bytes) -> None
 
     w = where & ~m2.SSL_ST_MASK
-    if (w & m2.SSL_ST_CONNECT):
+    if w & m2.SSL_ST_CONNECT:
         state = "SSL connect"
-    elif (w & m2.SSL_ST_ACCEPT):
+    elif w & m2.SSL_ST_ACCEPT:
         state = "SSL accept"
     else:
         state = "SSL state unknown"
 
-    if (where & m2.SSL_CB_LOOP):
+    if where & m2.SSL_CB_LOOP:
         sys.stderr.write("LOOP: %s: %s\n" %
                          (state, m2.ssl_get_state_v(ssl_ptr)))
         sys.stderr.flush()
         return
 
-    if (where & m2.SSL_CB_EXIT):
+    if where & m2.SSL_CB_EXIT:
         if not ret:
             sys.stderr.write("FAILED: %s: %s\n" %
                              (state, m2.ssl_get_state_v(ssl_ptr)))
@@ -78,8 +84,8 @@ def ssl_info_callback(where, ret, ssl_ptr):
             sys.stderr.flush()
         return
 
-    if (where & m2.SSL_CB_ALERT):
-        if (where & m2.SSL_CB_READ):
+    if where & m2.SSL_CB_ALERT:
+        if where & m2.SSL_CB_READ:
             w = 'read'
         else:
             w = 'write'

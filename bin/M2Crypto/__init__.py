@@ -18,22 +18,28 @@ Copyright (C) 2004-2007 OSAF. All Rights Reserved.
 Copyright 2008-2011 Heikki Toivonen. All rights reserved.
 """
 # noqa
+import sys
 from distutils.version import StrictVersion
-__version__ = '0.24.0'
-version = __version__
+__version__ = '0.35.2'
+version = __version__  # type: str
 version_info = StrictVersion(__version__).version
 
+# This means "Python 2.7 or higher" so it is True for py3k as well
+py27plus = sys.version_info[:2] > (2, 6)  # type: bool
+
 from M2Crypto import (ASN1, AuthCookie, BIO, BN, DH, DSA, EVP, Engine, Err,
-                      PGP, RC4, RSA, Rand, SMIME, SSL, X509, _m2crypto,
-                      ftpslib, httpslib, m2, m2urllib, m2xmlrpclib,
-                      threading, util)
+                      RSA, Rand, SMIME, SSL, X509, m2crypto, ftpslib,
+                      httpslib, m2, m2urllib, m2xmlrpclib, threading,
+                      util)
 
 if m2.OPENSSL_VERSION_NUMBER >= 0x90800F and m2.OPENSSL_NO_EC == 0:
     from M2Crypto import EC
+if m2.OPENSSL_NO_RC4 == 0:
+    from M2Crypto import RC4
 # Backwards compatibility.
 urllib2 = m2urllib
 
 encrypt = 1
 decrypt = 0
 
-_m2crypto.lib_init()
+m2crypto.lib_init()

@@ -4,37 +4,42 @@ from __future__ import absolute_import
 
 Copyright (c) 1999-2003 Ng Pheng Siong. All rights reserved."""
 
-from M2Crypto import BIO, Err, m2
+from M2Crypto import BIO, m2, util
 from M2Crypto.util import genparam_callback
+if util.py27plus:
+    from typing import AnyStr, Callable  # noqa
+
 
 class DHError(Exception):
     pass
 
 m2.dh_init(DHError)
 
-class DH:
 
-    """
-    Object interface to the Diffie-Hellman key exchange
-    protocol.
+class DH(object):
+    """Object interface to the Diffie-Hellman key exchange protocol.
     """
 
     m2_dh_free = m2.dh_free
 
     def __init__(self, dh, _pyfree=0):
+        # type: (bytes, int) -> None
         assert m2.dh_type_check(dh)
         self.dh = dh
         self._pyfree = _pyfree
 
     def __del__(self):
+        # type: () -> None
         if getattr(self, '_pyfree', 0):
             self.m2_dh_free(self.dh)
 
     def __len__(self):
+        # type: () -> int
         assert m2.dh_type_check(self.dh), "'dh' type error"
-        return m2.dh_size(self.dh)
+        return int(m2.dh_size(self.dh))
 
     def __getattr__(self, name):
+        # type: (str) -> bytes
         if name in ('p', 'g', 'pub', 'priv'):
             method = getattr(m2, 'dh_get_%s' % (name,))
             assert m2.dh_type_check(self.dh), "'dh' type error"
@@ -43,6 +48,7 @@ class DH:
             raise AttributeError
 
     def __setattr__(self, name, value):
+        # type: (str, bytes) -> bytes
         if name in ('p', 'g'):
             raise DHError('set (p, g) via set_params()')
         elif name in ('pub', 'priv'):
@@ -54,39 +60,48 @@ class DH:
         return self.dh
 
     def check_params(self):
+        # type: () -> int
         assert m2.dh_type_check(self.dh), "'dh' type error"
         return m2.dh_check(self.dh)
 
     def gen_key(self):
+        # type: () -> None
         assert m2.dh_type_check(self.dh), "'dh' type error"
         m2.dh_generate_key(self.dh)
 
     def compute_key(self, pubkey):
+        # type: (bytes) -> bytes
         assert m2.dh_type_check(self.dh), "'dh' type error"
         return m2.dh_compute_key(self.dh, pubkey)
 
     def print_params(self, bio):
+        # type: (BIO.BIO) -> int
         assert m2.dh_type_check(self.dh), "'dh' type error"
         return m2.dhparams_print(bio._ptr(), self.dh)
 
 
 def gen_params(plen, g, callback=genparam_callback):
-    return DH(m2.dh_generate_parameters(plen, g, callback), 1)
+    # type: (int, int, Optional[Callable]) -> DH
+    dh_parms = m2.dh_generate_parameters(plen, g, callback)
+    dh_obj = DH(dh_parms, 1)
+    return dh_obj
 
 
 def load_params(file):
-    bio = BIO.openfile(file)
-    return load_params_bio(bio)
+    # type: (AnyStr) -> DH
+    with BIO.openfile(file) as bio:
+        return load_params_bio(bio)
 
 
 def load_params_bio(bio):
+    # type: (BIO.BIO) -> DH
     return DH(m2.dh_read_parameters(bio._ptr()), 1)
 
 
 def set_params(p, g):
+    # type: (bytes, bytes) -> DH
     dh = m2.dh_new()
-    m2.dh_set_p(dh, p)
-    m2.dh_set_g(dh, g)
+    m2.dh_set_pg(dh, p, g)
     return DH(dh, 1)
 
 

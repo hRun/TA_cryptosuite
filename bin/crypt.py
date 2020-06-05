@@ -9,20 +9,26 @@
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
-from __future__      import absolute_import
-from __future__      import print_function
+from __future__ import absolute_import
+from __future__ import print_function
+
+#from cryptography.hazmat.backends   import default_backend
+#from cryptography.hazmat.primitives import serialization
+
+#from Crypto.PublicKey import RSA
+#from Crypto.Random import get_random_bytes
+#from Crypto.Cipher import AES, PKCS1_OAEP
+
 #from rsa._compat     import b
 #from xml.dom         import minidom
 #from xml.dom.minidom import Node
 
-#import base64
+import base64
 #import binascii
 #import M2Crypto
-import cryptography
 import json
 import sys
-import re
-#import rsa
+import rsa
 
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
@@ -100,10 +106,19 @@ class cryptCommand(StreamingCommand):
     ## Helper to check if a user is privileged to do what he is trying to do
     #
     def validate_user(self, service):
-        auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_roles'].split('~')
-        auth_users = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_users'].split('~')
+        auth_roles = []
+        auth_users = []
         user       = self._metadata.searchinfo.username
         roles      = []
+
+        try:
+            auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_roles'].split('~')
+        except AttributeError:
+            pass
+        try:
+            auth_users = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_users'].split('~')
+        except AttributeError:
+            pass
 
         for role in service.users[self._metadata.searchinfo.username]['role_entities']:
             roles.append(role.name)
@@ -133,38 +148,56 @@ class cryptCommand(StreamingCommand):
         key_dict   = ""
 
         for chunk in stored_key:
-            key_dict += chunk.clear_password
+            key_dict += chunk.clear_password if 'data/inputs/crypto_settings:{0}'.format(self.key) in chunk.name else ""
         key_dict = json.loads(key_dict.split('``splunk_cred_sep``', 1)[0])
 
         if self.algorithm == 'rsa':
             if not key_dict['key_salt'].startswith('-----BEGIN RSA '):
                 raise RuntimeWarning('Currently only RSA keys in PEM format are supported. Please specify a valid key file.')
-            if len(key_dict['key_salt'].strip('\n').split('-----')[-3]) < 824:
-                raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
+            # Load RSA public key
             if self.mode == 'e':
+                if not ' PUBLIC KEY-----' in key_dict['key_salt']:
+                    raise RuntimeWarning('Currently only public RSA keys in PEM format are supported. Please specify a valid public key file.')
+                if len(key_dict['key_salt'].strip('\n').split('-----')[-3]) < 220:
+                    raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
+
+                try:
+                    key = key_dict['key_salt'][:30] + key_dict['key_salt'][30:-28:].replace(' ', '\n') + key_dict['key_salt'][-28:] + "\n"
+                    return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM')
+                    #return serialization.load_pem_public_key(key_dict['key_salt'], backend=default_backend())
+                except Exception as e:
+                    raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
+
+            # Load RSA private key
+            else:
                 if not ' PRIVATE KEY-----' in key_dict['key_salt']:
                     raise RuntimeWarning('Currently only private RSA keys in PEM format are supported. Please specify a valid private key file.')
+                if len(key_dict['key_salt'].strip('\n').split('-----')[-3]) < 824:
+                    raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
+
                 try:
-                    # TODO
-                    return rsa.key.PublicKey.load_pkcs1(key_dict['key_salt'], 'PEM')
+                    if 'DEK-Info:' in key_dict['key_salt'] and 'rsa_key_encryption_password' not in key_dict:
+                        raise RuntimeWarning('No password was configured for encrypted private key. Please configure one before using this key.')
+                    if 'DEK-Info:' in key_dict['key_salt']:
+                        pass
+                        # TODO
+                        # RSA module does not support encrypted keys....
+                        #return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'] if 'rsa_key_encryption_password' in key_dict else None)
+                    else:
+                        try:
+                            key = key_dict['key_salt'][:31] + key_dict['key_salt'][31:-29:].replace(' ', '\n') + key_dict['key_salt'][-29:] + "\n"
+                            return rsa.key.PrivateKey.load_pkcs1(key.encode('utf-8'), 'PEM')
+                            #return serialization.load_pem_public_key(key_dict['key_salt'], backend=default_backend())
+                        except Exception as e:
+                            raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
+                    #return serialization.load_pem_private_key(key_dict['key_salt'], 
+                    #                                          password=key_dict['rsa_key_encryption_password'] if 'rsa_key_encryption_password' in key_dict else None, 
+                    #                                          backend=default_backend())
                 except Exception as e:
-                    raise RuntimeWarning('Failed to load specified public key: {0}'.format(e))
-            else:
-                if not ' PUBLIK KEY-----' in key_dict['key_salt']:
-                    raise RuntimeWarning('Currently only public RSA keys in PEM format are supported. Please specify a valid public key file.')
-                if re.match(r'DEK-Info:\s+', key_dict['key_salt']) is None:
-                    try:
-                        return M2Crypto.RSA.load_key(key_dict['key_salt'])
-                    except:
-                        raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
-                else:
-                    if key_dict['rsa_key_encryption_password'] is None:
-                        raise RuntimeWarning('No password was configured for encrypted private key. Please ask your admin to specfy one.')
-                    try:
-                        return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
-                    except:
-                        raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
+                    raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
+
+        # Load AES key and IV
         elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
             # TODO
             pass
@@ -175,52 +208,61 @@ class cryptCommand(StreamingCommand):
 
     ## Helpers for encryption and decryption
     #
-    def rsa_encrypt(fieldname, field, key):
+    def rsa_encrypt(self, fieldname, field, key): 
         # Split fields bigger than 256-11 bytes
         if len(field) > 245:
             chunk = ""
-            for i in xrange(0,len(field),245):
+            for i in range(0, len(field), 245):
                 try:                          
                     # Use random padding or not for RSA encryption
-                    if not self.randpadding:
-                        chunk += base64.encodestring(rsa.encrypt_zero_padding(field[i:i+245], key))
-                    else:                               
-                        chunk += base64.encodestring(rsa.encrypt_rand_padding(field[i:i+245], key))
+                    if self.randpadding in [None, True]:
+                        chunk += base64.encodestring(rsa.encrypt(field[i:i+245].encode('utf-8'), key)).decode("utf-8")
+                    else:
+                        # TODO Re-implement non-random padding into RSA lib or remove non-random padding support
+                        chunk += base64.encodestring(rsa.encrypt_rand_padding(field[i:i+245], key)).decode("utf-8")
                 except Exception as e:
                     raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
             return chunk
+
+        # Otherwise encrypt straight forward
         else:
             try:
                 # Use random padding or not for RSA encryption
-                if not self.randpadding:                          
-                    return base64.encodestring(rsa.encrypt_zero_padding(field, key))
-                else:                         
-                    return base64.encodestring(rsa.encrypt_rand_padding(field, key))
+                if self.randpadding in [None, True]:
+                    return base64.encodestring(rsa.encrypt(field.encode('utf-8'), key)).decode("utf-8")
+                else:
+                    # TODO Re-implement non-random padding into RSA lib or remove non-random padding support
+                    return base64.encodestring(rsa.encrypt_zero_padding(field, key)).decode("utf-8")
             except Exception as e:
-                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))   
 
-    def rsa_decrypt(fieldname, field, key):
+    def rsa_decrypt(self, fieldname, field, key):
         # Rejoin split fields (fields bigger than 256-11 bytes)
-        if len(field) > 346:
-            for chunk in field.split('=\n'):
+        if len(field.replace('\n', '')) > 344:
+            clear = ""
+            for chunk in field.split('=='):
                 if len(chunk) <= 1:
                     continue
-                chunk = chunk.replace('\n', '') + '='
+                chunk = chunk.replace('\n', '') + '=='
                 try:
-                    chunk += key.private_decrypt(base64.decodestring(chunk), M2Crypto.RSA.pkcs1_padding)
+                    clear += rsa.decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
+                    #chunk += key.private_decrypt(base64.decodestring(chunk), M2Crypto.RSA.pkcs1_padding)
                 except Exception as e:
                     raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
-            return chunk
+            return clear
+
+        # Otherwise decrypt straight forward
         else:
             try:
-                return key.private_decrypt(base64.decodestring(field), M2Crypto.RSA.pkcs1_padding)
+                return rsa.decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
+                #return key.private_decrypt(base64.decodestring(field), M2Crypto.RSA.pkcs1_padding)
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
-    def aes_encrypt(fieldname, field, key):
+    def aes_encrypt(self, fieldname, field, key):
         # TODO
         pass
-    def aes_decrypt(fieldname, field, key):
+    def aes_decrypt(self, fieldname, field, key):
         # TODO
         pass
 
@@ -231,7 +273,7 @@ class cryptCommand(StreamingCommand):
     def stream(self, events):     
         # Bind to Splunk session and initialize variables
         service = client.Service(token=self.metadata.searchinfo.session_key)
-
+        
         # Check if configuration exists for specified key
         try:
             service.confs['inputs']['crypto_settings://{0}'.format(self.key)]
@@ -261,7 +303,7 @@ class cryptCommand(StreamingCommand):
                             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
                     yield event
             else:
-                raise RuntimeWarning('User "{0}" is not authorized to use the specified encryption key.'.format(user))
+                raise RuntimeWarning('User "{0}" is not authorized to use the specified encryption key.'.format(self._metadata.searchinfo.username))
 
         # DECRYPTION
         #
@@ -285,7 +327,7 @@ class cryptCommand(StreamingCommand):
                             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
                     yield event
             else:
-                raise RuntimeWarning('User "{0}" is not authorized to use the specified decryption key.'.format(user))
+                raise RuntimeWarning('User "{0}" is not authorized to use the specified decryption key.'.format(self._metadata.searchinfo.username))
 
         else:
             raise ValueError('Invalid mode "{0}" used. Allowed values are "e" and "d".'.format(self.mode))

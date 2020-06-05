@@ -14,23 +14,46 @@ Summary of changes:
 """
 
 import socket
-import urlparse
 
-from M2Crypto import SSL
-from M2Crypto import httpslib
+from M2Crypto import SSL, httpslib, six, util
+
+from M2Crypto.six.moves.urllib_parse import urldefrag, urlparse as url_parse
+from M2Crypto.six.moves.urllib_response import addinfourl
+if util.py27plus:
+    from typing import List, Optional  # noqa
+
+# six.moves doesn't support star imports
+if six.PY3:
+    from urllib.request import *  # noqa other modules want to import
+    from urllib.error import *  # noqa other modules want to import
+else:
+    from urllib2 import *  # noqa
 
 
-class _closing_fileobject(socket._fileobject):
-    '''socket._fileobject that propagates self.close() to the socket.
+try:
+    mother_class = socket._fileobject
+except AttributeError:
+    mother_class = socket.SocketIO
+
+
+class _closing_fileobject(mother_class):  # noqa
+    """socket._fileobject that propagates self.close() to the socket.
 
     Python 2.5 provides this as socket._fileobject(sock, close=True).
-    '''
+    """
 
-from urllib2 import *  # noqa
+# for python 3
+try:
+    AbstractHTTPHandler
+except NameError:
+    # somehow this won't get imported by the import * above
+    import urllib.request
+    AbstractHTTPHandler = urllib.request.AbstractHTTPHandler
 
 
 class HTTPSHandler(AbstractHTTPHandler):
     def __init__(self, ssl_context=None):
+        # type: (SSL.Context) -> None
         AbstractHTTPHandler.__init__(self)
 
         if ssl_context is not None:
@@ -41,29 +64,40 @@ class HTTPSHandler(AbstractHTTPHandler):
 
     # Copied from urllib2, so we can set the ssl context.
     def https_open(self, req):
+        # type: (Request) -> addinfourl
         """Return an addinfourl object for the request, using http_class.
 
         http_class must implement the HTTPConnection API from httplib.
         The addinfourl return value is a file-like object.  It also
         has methods and attributes including:
+
             - info(): return a mimetools.Message object for the headers
+
             - geturl(): return the original request URL
+
             - code: HTTP status code
         """
-        host = req.get_host()
+        # https://docs.python.org/3.3/library/urllib.request.html#urllib.request.Request.get_host
+        try:     # up to python-3.2
+            host = req.get_host()
+        except AttributeError:  # from python-3.3
+            host = req.host
         if not host:
             raise URLError('no host given')
 
         # Our change: Check to see if we're using a proxy.
         # Then create an appropriate ssl-aware connection.
         full_url = req.get_full_url()
-        target_host = urlparse.urlparse(full_url)[1]
+        target_host = url_parse(full_url)[1]
 
-        if (target_host != host):
-            request_uri = urlparse.urldefrag(full_url)[0]
+        if target_host != host:
+            request_uri = urldefrag(full_url)[0]
             h = httpslib.ProxyHTTPSConnection(host=host, ssl_context=self.ctx)
         else:
-            request_uri = req.get_selector()
+            try:     # up to python-3.2
+                request_uri = req.get_selector()
+            except AttributeError:  # from python-3.3
+                request_uri = req.selector
             h = httpslib.HTTPSConnection(host=host, ssl_context=self.ctx)
         # End our change
         h.set_debuglevel(self._debuglevel)
@@ -90,9 +124,15 @@ class HTTPSHandler(AbstractHTTPHandler):
         # for Windows.  That adapter calls recv(), so delegate recv()
         # to read().  This weird wrapping allows the returned object to
         # have readline() and readlines() methods.
-
         r.recv = r.read
-        fp = socket._fileobject(r, close=True)
+        if six.PY2:
+            fp = socket._fileobject(r, close=True)
+        else:
+            r._decref_socketios = lambda: None
+            r.ssl = h.sock.ssl
+            r._timeout = -1.0
+            r.recv_into = r.readinto
+            fp = socket.SocketIO(r, 'rb')
 
         resp = addinfourl(fp, r.msg, req.get_full_url())
         resp.code = r.status
@@ -104,6 +144,7 @@ class HTTPSHandler(AbstractHTTPHandler):
 
 # Copied from urllib2 with modifications for ssl
 def build_opener(ssl_context=None, *handlers):
+    # type: (Optional[SSL.Context], *object) -> OpenerDirector
     """Create an opener object from a list of handlers.
 
     The opener will use several default handlers, including support
@@ -112,10 +153,9 @@ def build_opener(ssl_context=None, *handlers):
     If any of the handlers passed as arguments are subclasses of the
     default handlers, the default handlers will not be used.
     """
-    import types
 
     def isclass(obj):
-        return isinstance(obj, types.ClassType) or hasattr(obj, "__bases__")
+        return isinstance(obj, type) or hasattr(obj, "__bases__")
 
     opener = OpenerDirector()
     default_classes = [ProxyHandler, UnknownHandler, HTTPHandler,
