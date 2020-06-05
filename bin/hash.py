@@ -3,10 +3,10 @@
 """ 
     Implementation of the custom Splunk> search command "hash" used 
     for hashing fields during search time using the common hashing 
-    algorithms MD5, SHA1, SHA224, SHA256, SHA384, SHA512.
+    algorithms MD5, SHA1, SHA2 (224, 256, 384, 512), SHA3 (224, 256, 384, 512), Blake2.
     
     Author: Harun Kuessner
-    Version: 2.0a
+    Version: 2.1
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
@@ -25,33 +25,35 @@ class hashCommand(StreamingCommand):
     """ 
     ##Syntax
 
-    hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512> [saltfile=<file_name>] <field-list>
+    hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s> [salt=<salt_name>] <field-list>
 
     ##Description
     
     Values of fields provided by `field-list` are hashed using the algorithm specified
-    by `algorithm`. Optionally the salt stored in `saltfile` is applied.
+    by `algorithm`. Optionally the salt stored in `salt` is applied.
     
-    Currently supported algorithms for field hashing are are MD5, SHA1, SHA224, SHA256, SHA384, SHA512.
+    MD5, SHA1 and SHA2 hashing algorithms are supported for both Python 2 and 3.
+    
+    SHA3 and Blake2 hashing algorithms are only supported when using Python 3 as Splunk's interpreter.
           
     ##Examples
 
-    Hash the content of the field `body` using SHA256 and apply the salt stored in secret.txt.
+    Hash the content of the field `body` using SHA256 and apply the salt configured for name "secret.txt".
     
-    search sourcetype="apache::data" | hash algoritm=sha256 saltfile=secret.txt body
+    search sourcetype="apache::data" | hash algoritm=sha256 salt=secret.txt body
           
     """
 
     algorithm = Option(
         doc='''
-        **Syntax:** **algorithm=***<md5|sha1|sha224|sha256|sha384|sha512>*
+        **Syntax:** **algorithm=***<md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s>*
         **Description:** hashing algorithm to use''',
         require=True) 
 
-    saltfile = Option(
+    salt = Option(
         doc='''
-        **Syntax:** **saltfile=***<file_name>*
-        **Description:** file which holds the salt to use''',
+        **Syntax:** **salt=***<salt_name>*
+        **Description:** configuration which holds the salt to use''',
         require=False)
 
 
@@ -65,11 +67,11 @@ class hashCommand(StreamingCommand):
         roles      = []
         
         try:
-            auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.saltfile)]['authorized_roles'].split('~')
+            auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.salt)]['authorized_roles'].split('~')
         except AttributeError:
             pass
         try:
-            auth_users = service.confs['inputs']['crypto_settings://{0}'.format(self.saltfile)]['authorized_users'].split('~')
+            auth_users = service.confs['inputs']['crypto_settings://{0}'.format(self.salt)]['authorized_users'].split('~')
         except AttributeError:
             pass
 
@@ -92,7 +94,7 @@ class hashCommand(StreamingCommand):
     ## Helper to load salts
     #
     def load_salt(self, service):
-        stored_salt = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.saltfile))
+        stored_salt = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.salt))
         salt_dict   = ""
 
         for chunk in stored_salt:
@@ -109,13 +111,13 @@ class hashCommand(StreamingCommand):
         service = client.Service(token=self.metadata.searchinfo.session_key)
         salt    = ""
 
-        # Get salt if "saltfile" was set
-        if self.saltfile:
+        # Get salt if "salt" was set
+        if self.salt:
             # Check if configuration exists for specified salt
             try:
-                service.confs['inputs']['crypto_settings://{0}'.format(self.saltfile)]
+                service.confs['inputs']['crypto_settings://{0}'.format(self.salt)]
             except:
-                raise RuntimeWarning('Specified salt file "{0}" does not exist. Please check the spelling of your specified salt name or your configured salts.'.format(self.saltfile))
+                raise RuntimeWarning('Specified salt file "{0}" does not exist. Please check the spelling of your specified salt name or your configured salts.'.format(self.salt))
 
             # Continue if user is authorized for salt usage
             if self.validate_user(service):
@@ -129,35 +131,21 @@ class hashCommand(StreamingCommand):
                     continue
                 try:
                     if self.saltfile:
-                        if self.algorithm == 'md5':
-                            event[self.algorithm] = hashlib.md5(salt.encode('utf-8') + event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha1':
-                            event[self.algorithm] = hashlib.sha1(salt.encode('utf-8') + event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha224':
-                            event[self.algorithm] = hashlib.sha224(salt.encode('utf-8') + event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha256':
-                            event[self.algorithm] = hashlib.sha256(salt.encode('utf-8') + event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha384':
-                            event[self.algorithm] = hashlib.sha384(salt.encode('utf-8') + event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha512':
-                            event[self.algorithm] = hashlib.sha512(salt.encode('utf-8') + event[fieldname].encode('utf-8')).hexdigest()
-                        else:
-                            raise RuntimeWarning('Invalid hash algorithm {0} has been specified.'.format(self.algorithm))
+                        message = salt.encode('utf-8') + event[fieldname].encode('utf-8')
                     else:
-                        if self.algorithm == 'md5':
-                            event[self.algorithm] = hashlib.md5(event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha1':
-                            event[self.algorithm] = hashlib.sha1(event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha224':
-                            event[self.algorithm] = hashlib.sha224(event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha256':
-                            event[self.algorithm] = hashlib.sha256(event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha384':
-                            event[self.algorithm] = hashlib.sha384(event[fieldname].encode('utf-8')).hexdigest()
-                        elif self.algorithm == 'sha512':
-                            event[self.algorithm] = hashlib.sha512(event[fieldname].encode('utf-8')).hexdigest()
-                        else:
-                            raise RuntimeWarning('Invalid hash algorithm {0} has been specified.'.format(self.algorithm))
+                        message = event[fieldname].encode('utf-8')
+                        
+                    if self.algorithm in ['md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512']:
+                        hashmethod            = getattr(hashlib, self.algorithm)
+                        event[self.algorithm] = hashmethod(message).hexdigest()
+                    elif sys.version_info >= (3, 0) and self.algorithm in ['sha3_224', 'sha3_256', 'sha3_384', 'sha3_512', 'blake2b', 'blake2s']:
+                        hashmethod            = getattr(hashlib, self.algorithm)
+                        event[self.algorithm] = hashmethod(message).hexdigest()
+                    elif sys.version_info < (3, 0) and self.algorithm in ['sha3_224', 'sha3_256', 'sha3_384', 'sha3_512', 'blake2b', 'blake2s']:
+                        raise RuntimeWarning('Hash algorithm {0} is only available when using Python 3 as Splunk\s Python interpreter.'.format(self.algorithm))
+                    else:
+                        raise RuntimeWarning('Invalid hash algorithm {0} has been specified.'.format(self.algorithm))
+
                 except Exception as e:
                     self.logger.error('Failed to hash fields: {0}'.format(e))
             yield event

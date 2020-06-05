@@ -143,12 +143,16 @@ class cryptCommand(StreamingCommand):
                 raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
             if self.mode == 'e':
+                if not ' PRIVATE KEY-----' in key_dict['key_salt']:
+                    raise RuntimeWarning('Currently only private RSA keys in PEM format are supported. Please specify a valid private key file.')
                 try:
                     # TODO
                     return rsa.key.PublicKey.load_pkcs1(key_dict['key_salt'], 'PEM')
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified public key: {0}'.format(e))
             else:
+                if not ' PUBLIK KEY-----' in key_dict['key_salt']:
+                    raise RuntimeWarning('Currently only public RSA keys in PEM format are supported. Please specify a valid public key file.')
                 if re.match(r'DEK-Info:\s+', key_dict['key_salt']) is None:
                     try:
                         return M2Crypto.RSA.load_key(key_dict['key_salt'])

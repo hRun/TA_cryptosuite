@@ -5,7 +5,7 @@ The Splunk® Support Add-On _Cryptosuite_ is the successor to the deprecated Sup
 It implements and extends the custom search commands _crypt_ and _hash_ for encrypting/decrypting and hashing fields and events at search time.
 
 * Encrypt/decrypt fields or complete events during search time using RSA or AES-128/192/256-CBC
-* Hash fields or complete events during search time using md5 / sha1 / sha2 (sha224/sha256/sha384/sha512)
+* Hash fields or complete events during search time using MD5, SHA1, SHA2 (224, 256, 384, 512), SHA3 (224, 256, 384, 512), Blake2
 * Manage access to encryption and decryption functionality on a per-user or per-role basis via two shipped roles
 * Manage useable encryption/decryption keys on a per-user or per-role basis via the app's configuration screen
 
@@ -84,7 +84,7 @@ If you plan on salting your hashes, create and store upload salts like so:
 ## Usage
 
 Syntax: 
-*crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_name> [randpadding=\<true|false>] \<field-list>*
+*crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<key_name> [randpadding=\<true|false>] \<field-list>*
 
 _mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 
@@ -95,9 +95,9 @@ _key_: Mandatory. Set to the name of a key you (or your admin) configured previo
 _randpadding_: Optional, default: _true_. Only valid for _algorithm=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
 
 Syntax: 
-*hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512> [saltfile=\<file_name>] \<field-list>*
+*hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s> [salt=\<salt_name>] \<field-list>*
 
-_algorithm_: Mandatory. Set to the hashing algorithm you would like to use.
+_algorithm_: Mandatory. Set to the hashing algorithm you would like to use. SHA3 and Blake2 are only available when using Python 3.
 
 _saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
    
@@ -136,21 +136,18 @@ You can argue this way or that. My assumption is that only high-privileged users
 * The keys and salts you upload are stored encrypted in _passwords.conf_. However to quote a Splunk blog post: "[...] Since the encrypted data and the encryption key are stored on the same machine, cryptographically this is equivalent to obfuscation. While some people might argue that this is very weak encryption, it is the best we can do with storing the encrypted data and encryption key on the same machine and it is definitely better than clear text passwords [...]"[3]
 * Disabling random padding when encrypting with RSA is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
 * The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split into blocks. This enables certain attacks to the RSA crypto system. Therefore it is recommended to always set randpadding=true when encrypting large fields.
-* It is not recommended to use MD5 or SHA1 (on passwords) since these hashing algorithms are not seen as safe anymore.
 * Using 1024 bit RSA keys is generally considered unsafe and therefore not possible using with the add-on.
+
+* It is not recommended to use MD5 or SHA1 (on passwords) since these hashing algorithms are not seen as safe anymore.
+* SHA3 and Blake2 are only available when using Python3 as your environments interpreter.
 
 ## TODO / Known Issues
 
-* Update README again to match add-on builder use
 * Major overhaul for Splunk 8 compatibility
 * Ensured cross-compatibility for Python 2 and 3
-* Implement per-user and per-key key usability
-* Implement sanity check for private/public RSA key usage at encryption/decryption attempts
 * Implement possibility for AES-128/192/256-CBC field/event encryption & decryption
-* Implement possibility for SHA3 hashing of fields/events
 * Implement PKCS#1 v2 support
 * Disable helper input by default
-* Remove keyencryption parameter from crypt command and replace by automatic detection
 * Test with Splunk 7.x
 * Enhance performance
 * Potentially implement support for wildcards for field names
@@ -162,8 +159,15 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Updated Splunk SDK for Python
 * Using custom search command protocol v2 now
 * Updated README and docs with soon-to-come changes
+* Implemented proper key/salt management on per-user and per-role basis
+
+* Removed keyencryption parameter from crypt command and replaced by automatic detection
+* Implemented sanity check for private/public RSA key usage at encryption/decryption attempts
+
 * Ensured Splunk 8 and Python 2/3 cross-compatilibity for hash command
 * Hashes will now be written to a new field with the name of the used algorithm
+* Renamed saltfile parameter to salt
+* Implemented SHA3 and Blake2 support for environments using Python 3
 
 *See https://github.com/my2ndhead/SA-hypercrypto for previous, deprecated versions.*
 
