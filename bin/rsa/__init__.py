@@ -26,6 +26,7 @@ prevent repetitions, or other common security improvements. Use with care.
 from rsa.key import newkeys, PrivateKey, PublicKey
 from rsa.pkcs1 import encrypt, decrypt, sign, verify, DecryptionError, \
     VerificationError, find_signature_hash,  sign_hash, compute_hash
+from rsa.oaep import OAEP_encrypt, OAEP_decrypt
 
 __author__ = "Sybren Stuvel, Barry Mead and Yesudeep Mangalapilly"
 __date__ = "2018-09-16"
@@ -37,6 +38,6 @@ if __name__ == "__main__":
 
     doctest.testmod()
 
-__all__ = ["newkeys", "encrypt", "decrypt", "sign", "verify", 'PublicKey',
+__all__ = ["newkeys", "encrypt", "decrypt", "OAEP_encrypt", "OAEP_decrypt", "sign", "verify", 'PublicKey',
            'PrivateKey', 'DecryptionError', 'VerificationError',
            'compute_hash', 'sign_hash']

@@ -84,15 +84,13 @@ If you plan on salting your hashes, create and store upload salts like so:
 ## Usage
 
 Syntax: 
-*crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<key_name> [randpadding=\<true|false>] \<field-list>*
+*crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<key_name> \<field-list>*
 
 _mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 
 _algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
 
 _key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
-
-_randpadding_: Optional, default: _true_. Only valid for _algorithm=rsa_. Specify whether to use random padding or not. Disabling random padding will result in a the same cipher for each unique field value. Otherwise encryption results in a unique cipher even for same field values. Setting randpadding to false is not recommended since it allows certain attacks on the RSA crypto system.
 
 Syntax: 
 *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s> [salt=\<salt_name>] \<field-list>*
@@ -133,9 +131,9 @@ This is why your key/salt configurations are stored as modular input configurati
 This enables the technically savvy user to potentially read more secrets via Splunk's REST API than desirable. \
 Unfortunately as of now there is no way around this if the encryption/decryption keys and salts used for this app's function should not be stored in plaintext on disk. \
 You can argue this way or that. My assumption is that only high-privileged users will use the crypto functionality in the first place, and thus prefferred encrypted keys over potentially exessive permissions.
-* The keys and salts you upload are stored encrypted in _passwords.conf_. However to quote a Splunk blog post: "[...] Since the encrypted data and the encryption key are stored on the same machine, cryptographically this is equivalent to obfuscation. While some people might argue that this is very weak encryption, it is the best we can do with storing the encrypted data and encryption key on the same machine and it is definitely better than clear text passwords [...]"[3]
-* Disabling random padding when encrypting with RSA is useful in some cases but enables certain attacks to the RSA crypto system. So use randpadding=false with caution.
-* The RSA implementation is only capable of processing 255 - 11 bytes of data at once. Fields larger than that have to be split into blocks. This enables certain attacks to the RSA crypto system. Therefore it is recommended to always set randpadding=true when encrypting large fields.
+* The keys and salts you upload are stored encrypted in _passwords.conf_. However to quote a Splunk blog post: "[...] Since the encrypted data and the encryption key are stored on the same machine, cryptographically this is equivalent to obfuscation. While some people might argue that this is very weak encryption, it is the best we can do with storing the encrypted data and encryption key on the same machine and it is definitely better than clear text passwords [...]"[3].
+
+* The used RSA implementation is only capable of processing so many bytes of data at once during encryption, fields larger than that value have to be split into blocks. This might enable certain attacks on the RSA crypto system. To mitigate the chances of a successful attack, random padding (PKCS#1 v2 (OAEP)) is used and can not anymore be disabled in this version of the add-on.
 * Using 1024 bit RSA keys is generally considered unsafe and therefore not possible using with the add-on.
 
 * It is not recommended to use MD5 or SHA1 (on passwords) since these hashing algorithms are not seen as safe anymore.
@@ -145,8 +143,8 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 * Major overhaul for Splunk 8 compatibility
 * Ensured cross-compatibility for Python 2 and 3
+* Re-implement support for encrypted private RSA keys
 * Implement possibility for AES-128/192/256-CBC field/event encryption & decryption
-* Re-implement non-random padding into RSA lib or remove entirely?
 * Disable helper inputs by default
 * Test with Splunk 7.x
 * Enhance performance
@@ -162,7 +160,9 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Implemented proper key/salt management on per-user and per-role basis
 
 * Removed keyencryption parameter from crypt command and replaced by automatic detection
-* Implemented sanity check for private/public RSA key usage at encryption/decryption attempts
+* Removed randpadding parameter and support for non-random padding
+* Implemented basic sanity checks for private/public RSA key usage during encryption/decryption attempts
+* Implemented PKCS#1 v2 (OAEP) support
 
 * Ensured Splunk 8 and Python 2/3 cross-compatilibity for hash command
 * Hashes will now be written to a new field with the name of the used algorithm
@@ -173,7 +173,9 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## Attribution
 
-The crypt command uses a slightly modified version of Sybren A. Stuevel's (sybren@stuvel.eu) RSA implementation in Python [1] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
+The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (sybren@stuvel.eu) RSA implementation in Python [1] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
+
+Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [1.2] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. as well.
 
 ## License
 
@@ -188,6 +190,8 @@ Please reffer to the full license for completeness and correctness. Feel free to
 
 ## References
 [1] https://github.com/sybrenstuvel/python-rsa
+
+[1.2] https://github.com/sybrenstuvel/python-rsa/pull/126 and https://github.com/methane/python-rsa/tree/rsa_oaep
 
 [2] http://creativecommons.org/licenses/by-nc-sa/4.0/
 

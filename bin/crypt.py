@@ -12,20 +12,16 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+# Testing for support of encrypted private RSA keys
 #from cryptography.hazmat.backends   import default_backend
+#from cryptography.hazmat.backends.openssl import backend
 #from cryptography.hazmat.primitives import serialization
-
 #from Crypto.PublicKey import RSA
 #from Crypto.Random import get_random_bytes
 #from Crypto.Cipher import AES, PKCS1_OAEP
-
-#from rsa._compat     import b
-#from xml.dom         import minidom
-#from xml.dom.minidom import Node
+#from M2Crypto import RSA
 
 import base64
-#import binascii
-#import M2Crypto
 import json
 import sys
 import rsa
@@ -38,7 +34,7 @@ class cryptCommand(StreamingCommand):
     """ 
     ##Syntax
 
-    crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_name> [randpadding=<bool>] <field-list>
+    crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_name> <field-list>
 
     ##Description
     
@@ -48,11 +44,6 @@ class cryptCommand(StreamingCommand):
     Currently supported cryptographic algorithms are RSA and AES-128/192/256-CBC.
     
     Encrypted private RSA keys are supported if encrypted with AES256-CBC, DES-CBC or DES-EDE3-CBC.
-    
-    The optional parameter `randpadding` is only valid when using RSA. Set to false, to disable usage of 
-    random padding during field encryption, resulting in the same cipher for same field value. 
-    Otherwise encryption results in a unique cipher even for same field values. Set randpadding to false 
-    with caution since it allows certain attacks on the RSA crypto system.
 
     ##Requirements
 
@@ -93,13 +84,7 @@ class cryptCommand(StreamingCommand):
         doc='''
         **Syntax:** **key=***<file_name>*
         **Description:** name of the file containing the cryptographic key to use''',
-        require=True)      
-
-    randpadding = Option(
-        doc='''
-        **Syntax:** **randpadding=***<bool>*
-        **Description:** use random padding while encrypting with RSA or not''',
-        require=False, validate=validators.Boolean())   
+        require=True)
 
 
 
@@ -165,7 +150,6 @@ class cryptCommand(StreamingCommand):
                 try:
                     key = key_dict['key_salt'][:30] + key_dict['key_salt'][30:-28:].replace(' ', '\n') + key_dict['key_salt'][-28:] + "\n"
                     return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM')
-                    #return serialization.load_pem_public_key(key_dict['key_salt'], backend=default_backend())
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
 
@@ -183,17 +167,17 @@ class cryptCommand(StreamingCommand):
                         pass
                         # TODO
                         # RSA module does not support encrypted keys....
-                        #return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'] if 'rsa_key_encryption_password' in key_dict else None)
+                        raise RuntimeWarning('Unfortunately use of encrypted private RSA keys is not yet supported.'.format(e))
+                        #return RSA.import_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
+                        #return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
+                        #return serialization.load_pem_private_key(key_dict['key_salt'], password=key_dict['rsa_key_encryption_password'], backend=default_backend())
+                        #return backend.load_pem_private_key(key_dict['key_salt'], password=key_dict['rsa_key_encryption_password'])
                     else:
                         try:
                             key = key_dict['key_salt'][:31] + key_dict['key_salt'][31:-29:].replace(' ', '\n') + key_dict['key_salt'][-29:] + "\n"
                             return rsa.key.PrivateKey.load_pkcs1(key.encode('utf-8'), 'PEM')
-                            #return serialization.load_pem_public_key(key_dict['key_salt'], backend=default_backend())
                         except Exception as e:
                             raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
-                    #return serialization.load_pem_private_key(key_dict['key_salt'], 
-                    #                                          password=key_dict['rsa_key_encryption_password'] if 'rsa_key_encryption_password' in key_dict else None, 
-                    #                                          backend=default_backend())
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
 
@@ -209,17 +193,14 @@ class cryptCommand(StreamingCommand):
     ## Helpers for encryption and decryption
     #
     def rsa_encrypt(self, fieldname, field, key): 
-        # Split fields bigger than 256-11 bytes
-        if len(field) > 245:
+        # Split fields bigger than 214 bytes (PKCS1 v1.5: 256-11 bytes)
+        # TODO calculate dynamically based on key size, test with 4096 bit key
+        if len(field) > 214:
             chunk = ""
-            for i in range(0, len(field), 245):
+            for i in range(0, len(field), 214):
                 try:                          
-                    # Use random padding or not for RSA encryption
-                    if self.randpadding in [None, True]:
-                        chunk += base64.encodestring(rsa.encrypt(field[i:i+245].encode('utf-8'), key)).decode("utf-8")
-                    else:
-                        # TODO Re-implement non-random padding into RSA lib or remove non-random padding support
-                        chunk += base64.encodestring(rsa.encrypt_rand_padding(field[i:i+245], key)).decode("utf-8")
+                    chunk += base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode("utf-8")
+                    #PKCS1 v1.5: chunk += base64.encodestring(rsa.encrypt(field[i:i+245].encode('utf-8'), key)).decode("utf-8")
                 except Exception as e:
                     raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
             return chunk
@@ -227,17 +208,13 @@ class cryptCommand(StreamingCommand):
         # Otherwise encrypt straight forward
         else:
             try:
-                # Use random padding or not for RSA encryption
-                if self.randpadding in [None, True]:
-                    return base64.encodestring(rsa.encrypt(field.encode('utf-8'), key)).decode("utf-8")
-                else:
-                    # TODO Re-implement non-random padding into RSA lib or remove non-random padding support
-                    return base64.encodestring(rsa.encrypt_zero_padding(field, key)).decode("utf-8")
+                return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode("utf-8")
+                #PKCS1 v1.5: return base64.encodestring(rsa.encrypt(field.encode('utf-8'), key)).decode("utf-8")
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))   
 
     def rsa_decrypt(self, fieldname, field, key):
-        # Rejoin split fields (fields bigger than 256-11 bytes)
+        # Rejoin fields split into blocks during encryption
         if len(field.replace('\n', '')) > 344:
             clear = ""
             for chunk in field.split('=='):
@@ -245,8 +222,8 @@ class cryptCommand(StreamingCommand):
                     continue
                 chunk = chunk.replace('\n', '') + '=='
                 try:
-                    clear += rsa.decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
-                    #chunk += key.private_decrypt(base64.decodestring(chunk), M2Crypto.RSA.pkcs1_padding)
+                    clear += rsa.OAEP_decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
+                    #PKCS1 v1.5: clear += rsa.decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
                 except Exception as e:
                     raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
             return clear
@@ -254,8 +231,8 @@ class cryptCommand(StreamingCommand):
         # Otherwise decrypt straight forward
         else:
             try:
-                return rsa.decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
-                #return key.private_decrypt(base64.decodestring(field), M2Crypto.RSA.pkcs1_padding)
+                return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
+                #PKCS1 v1.5: return rsa.decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
