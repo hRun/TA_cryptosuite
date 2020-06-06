@@ -1,5 +1,7 @@
+**Note:** Please find recent changes in the _develop_ branch (https://github.com/hRun/TA-cryptosuite/tree/develop). Will push to master as soon as testing is finished.
+
 # Support Add-on for Hypercrypto
-- **Authors**:		Simon Balz <simon@balz.me>, Mika Borner <mika.borner@gmail.com>, Christoph Dittmann <mulibu.flyingk@gmail.com>, Harun Kuessner <h.kuessner@posteo.de>
+- **Authors**:		Simon Balz, Mika Borner, Christoph Dittmann, Harun Kuessner
 - **Description**:	A Splunk> Support Add-On introducing the 'crypt' command for encrypting fields using RSA and decrypting RSA encrypted fields.
 - **Version**: 		1.4
 
