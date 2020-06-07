@@ -1,4 +1,4 @@
-# Copyright 2011-2014 Splunk, Inc.
+# Copyright 2011-2015 Splunk, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"): you may
 # not use this file except in compliance with the License. You may obtain
@@ -11,6 +11,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+from __future__ import absolute_import
+from io import TextIOBase
+from splunklib.six import ensure_text
 
 try:
     import xml.etree.cElementTree as ET
@@ -100,8 +104,11 @@ class Event(object):
             if value is not None:
                 ET.SubElement(event, node).text = value
 
-        if self.done is not None:
+        if self.done:
             ET.SubElement(event, "done")
 
-        stream.write(ET.tostring(event))
+        if isinstance(stream, TextIOBase):
+            stream.write(ensure_text(ET.tostring(event)))
+        else:
+            stream.write(ET.tostring(event))
         stream.flush()
