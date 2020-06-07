@@ -130,11 +130,11 @@ class hashCommand(StreamingCommand):
                 if fieldname == '_time':
                     continue
                 try:
-                    if self.saltfile:
+                    if self.salt:
                         message = salt.encode('utf-8') + event[fieldname].encode('utf-8')
                     else:
                         message = event[fieldname].encode('utf-8')
-                        
+
                     if self.algorithm in ['md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512']:
                         hashmethod            = getattr(hashlib, self.algorithm)
                         event[self.algorithm] = hashmethod(message).hexdigest()
@@ -142,10 +142,9 @@ class hashCommand(StreamingCommand):
                         hashmethod            = getattr(hashlib, self.algorithm)
                         event[self.algorithm] = hashmethod(message).hexdigest()
                     elif sys.version_info < (3, 0) and self.algorithm in ['sha3_224', 'sha3_256', 'sha3_384', 'sha3_512', 'blake2b', 'blake2s']:
-                        raise RuntimeWarning('Hash algorithm {0} is only available when using Python 3 as Splunk\s Python interpreter.'.format(self.algorithm))
+                        raise RuntimeWarning('Hash algorithm {0} is only available when using Python 3 as Splunk\'s Python interpreter.'.format(self.algorithm))
                     else:
                         raise RuntimeWarning('Invalid hash algorithm {0} has been specified.'.format(self.algorithm))
-
                 except Exception as e:
                     self.logger.error('Failed to hash fields: {0}'.format(e))
             yield event
