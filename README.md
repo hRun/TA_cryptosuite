@@ -14,7 +14,7 @@ Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.0.2.1.
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
-* Version: 2.0a
+* Version: 2.0b
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [2]
 
 ## Installation
@@ -124,7 +124,7 @@ Hash a raw event containing some malware threat artifact using sha256.
 * Attempts to encrypt or hash _\_time_ will be ignored since Splunk always expects a valid _\_time_ field.
 * Wildcards for field names are not supported (yet).
 * Encryption and decryption of big quantities of data can be ressource intensive operations. Use with caution in old or feeble environments.
-* **Important Note:** Use of encrypted private RSA keys is not yet supported! Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
+* Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
 * To implement proper key/salt management (without relying on my weak JavaScript skills for a management dashboard) the add-on leverages the comfort Splunk Add-On Builder grants. \
 This is why your key/salt configurations are stored as modular input configurations. Don't worry, they are not used as such. A future version of the add-on might implement this better.
    
@@ -144,19 +144,34 @@ You can argue this way or that. My assumption is that only high-privileged users
 * It is not recommended to use MD5 or SHA1 (on passwords) since these hashing algorithms are not seen as safe anymore.
 * SHA3 and Blake2 are only available when using Python3 as your environments interpreter.
 
-## TODO / Known Issues
+## TODO / Roadmap / Known Issues
 
-* Major overhaul for Splunk 8 compatibility
-* Ensured cross-compatibility for Python 2 and 3
+* Some more testing of error handling
+* Test with Splunk 7.x
+* When saving keys/salts Splunk sometimes randomly removes \\n or spaces for no apparent reason. Need to account for this in the code.
+
+### v2.1 plan
+
 * Re-implement support for encrypted private RSA keys
 * Disable helper inputs by default
-* Do proper testing (4069 bit keys, performance, error handling)
-* Test with Splunk 7.x
+
+### v2.2 plan
+
 * Enhance performance
 * Potentially implement support for wildcards for field names
-* Add a logo
+
+### v2.3 plan
+
+* Implement _obfuscate_ command to enable (de)obfuscating data using XOR, ROT-13, ...
 
 ## History
+
+### v2.0b
+
+* Ensured and tested Splunk 8 compatibility
+* Ensured and tested Python2/3 cross-compatibility for crypt command
+* Ensured and tested Python2/3 cross-compatibility for hash command
+* Added a logo
 
 ### v2.0a
 
