@@ -5,21 +5,12 @@
     for encrypting and decrypting fields during search time using RSA or AES.
     
     Author: Harun Kuessner
-    Version: 2.0a
+    Version: 2.0b
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
 from __future__ import absolute_import
 from __future__ import print_function
-
-# Testing for support of encrypted private RSA keys
-#from cryptography.hazmat.backends   import default_backend
-#from cryptography.hazmat.backends.openssl import backend
-#from cryptography.hazmat.primitives import serialization
-#from Crypto.PublicKey import RSA
-#from Crypto.Random import get_random_bytes
-#from Crypto.Cipher import AES, PKCS1_OAEP
-#from M2Crypto import RSA
 
 import base64
 import json
@@ -135,7 +126,10 @@ class cryptCommand(StreamingCommand):
 
         for chunk in stored_key:
             key_dict += chunk.clear_password if 'data/inputs/crypto_settings:{0}'.format(self.key) in chunk.name else ""
-        key_dict = json.loads(key_dict.split('``splunk_cred_sep``', 1)[0])
+        if not key_dict.startswith('{'):
+            key_dict = json.loads(''.join(key_dict.split('``splunk_cred_sep``', 1)[::-1]).split('``splunk_cred_sep``')[-1])
+        else:
+            key_dict = json.loads(key_dict.split('``splunk_cred_sep``', 1)[0])
 
         if self.algorithm == 'rsa':
             if not key_dict['key_salt'].startswith('-----BEGIN RSA '):
@@ -149,7 +143,7 @@ class cryptCommand(StreamingCommand):
                     raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
                 try:
-                    key = key_dict['key_salt'][:30] + key_dict['key_salt'][30:-28:].replace(' ', '\n') + key_dict['key_salt'][-28:] + "\n"
+                    key = "-----BEGIN RSA PUBLIC KEY-----" + key_dict['key_salt'].split('-----')[2].replace(' ', '\n') + "-----END RSA PUBLIC KEY-----"
                     return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
@@ -165,17 +159,16 @@ class cryptCommand(StreamingCommand):
                     if 'DEK-Info:' in key_dict['key_salt'] and 'rsa_key_encryption_password' not in key_dict:
                         raise RuntimeWarning('No password was configured for encrypted private key. Please configure one before using this key.')
                     if 'DEK-Info:' in key_dict['key_salt']:
-                        pass
+                        raise RuntimeWarning('Unfortunately use of encrypted private RSA keys is not yet supported. Support will be implemented with the next version of the add-on.')
                         # TODO
-                        # RSA module does not support encrypted keys....
-                        raise RuntimeWarning('Unfortunately use of encrypted private RSA keys is not yet supported.')
+                        # RSA module does not support encrypted keys...
+                        # Need to either implement this or use another module like so:
                         #return RSA.import_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
                         #return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
                         #return serialization.load_pem_private_key(key_dict['key_salt'], password=key_dict['rsa_key_encryption_password'], backend=default_backend())
-                        #return backend.load_pem_private_key(key_dict['key_salt'], password=key_dict['rsa_key_encryption_password'])
                     else:
                         try:
-                            key = key_dict['key_salt'][:31] + key_dict['key_salt'][31:-29:].replace(' ', '\n') + key_dict['key_salt'][-29:] + "\n"
+                            key = "-----BEGIN RSA PRIVATE KEY-----" + key_dict['key_salt'].split('-----')[2].replace(' ', '\n') + "-----END RSA PRIVATE KEY-----"
                             return rsa.key.PrivateKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
                         except Exception as e:
                             raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
@@ -212,7 +205,6 @@ class cryptCommand(StreamingCommand):
     #
     def rsa_encrypt(self, fieldname, field, key): 
         # Split fields bigger than 214 bytes (PKCS1 v1.5: 256-11 bytes)
-        # TODO calculate dynamically based on key size, test with 4096 bit key
         if len(field) > 214:
             chunk = ""
             for i in range(0, len(field), 214):

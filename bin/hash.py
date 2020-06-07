@@ -142,11 +142,11 @@ class hashCommand(StreamingCommand):
                         hashmethod            = getattr(hashlib, self.algorithm)
                         event[self.algorithm] = hashmethod(message).hexdigest()
                     elif sys.version_info < (3, 0) and self.algorithm in ['sha3_224', 'sha3_256', 'sha3_384', 'sha3_512', 'blake2b', 'blake2s']:
-                        raise RuntimeWarning('Hash algorithm {0} is only available when using Python 3 as Splunk\'s Python interpreter.'.format(self.algorithm))
+                        raise RuntimeWarning('Hash algorithm "{0}" is only available when using Python 3 as Splunk\'s Python interpreter.'.format(self.algorithm))
                     else:
-                        raise RuntimeWarning('Invalid hash algorithm {0} has been specified.'.format(self.algorithm))
+                        raise RuntimeWarning('Invalid hash algorithm "{0}" has been specified.'.format(self.algorithm))
                 except Exception as e:
-                    self.logger.error('Failed to hash fields: {0}'.format(e))
+                    raise RuntimeWarning('Failed to hash fields: {0}'.format(e))
             yield event
 
 dispatch(hashCommand, sys.argv, sys.stdin, sys.stdout, __name__)
