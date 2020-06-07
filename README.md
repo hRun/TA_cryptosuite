@@ -4,7 +4,7 @@ The Splunk® Support Add-On _Cryptosuite_ is the successor to the deprecated Sup
 
 It implements and extends the custom search commands _crypt_ and _hash_ for encrypting/decrypting and hashing fields and events at search time.
 
-* Encrypt/decrypt fields or complete events during search time using RSA or AES-128/192/256-CBC
+* Encrypt/decrypt fields or complete events during search time using RSA, AES-128/192/256-CBC or AES-128/192/256-OFB
 * Hash fields or complete events during search time using MD5, SHA1, SHA2 (224, 256, 384, 512), SHA3 (224, 256, 384, 512), Blake2
 * Manage access to encryption and decryption functionality on a per-user or per-role basis via two shipped roles
 * Manage useable encryption/decryption keys on a per-user or per-role basis via the app's configuration screen
@@ -41,9 +41,9 @@ In order for the add-on to be fully usable you'll need to create and upload cryp
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example "key file" creation for AES:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Put your key and IV in UTF-8 or Base64 into a plain ASCII file. Key has to go on line 1 and IV on line 2.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Put your key and IV in UTF-8 into a plain ASCII file. Key has to go on line 1 and IV on line 2.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Key and IV length have to be 16/24/32 bytes respectively for 128/192/256 AES encryption.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The IV's length has to be 16 bytes/characters. The key's length has to be 16/24/32 bytes/characters respectively for 128/192/256 AES encryption. For security purposes 256 bit keys are recommended unless performance is important.
 
 2. Go to the app's configuration dashboard in your preferred browser. Click "Create New Input".
 
@@ -84,7 +84,7 @@ If you plan on salting your hashes, create and store upload salts like so:
 ## Usage
 
 Syntax: 
-*crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<key_name> \<field-list>*
+*crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<key_name> \<field-list>*
 
 _mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 
@@ -107,7 +107,7 @@ Encrypt the values of the plaintext fields "subject" and "content" of sourcetype
 
 Encrypt raw events of sourcetype "mail" using AES-256-CBC and collect the results in a summary index.
 
-&nbsp;&nbsp;&nbsp;_search sourcetype="mail" | crypt mode=e algorithm=aes-256-cbc key=secret.txt \_raw | collect index=summary_
+&nbsp;&nbsp;&nbsp;_search sourcetype="mail" | crypt mode=e algorithm=aes-cbc key=secret.txt \_raw | collect index=summary_
 
 Decrypt the content of the already RSA encrypted and summary-indexed field "username" for output in plain text using RSA. The key file "private.pem" is encrypted with AES-256-CBC, so the correspondig password has to be set via the app's set up screen prior to using the key.
 
@@ -121,6 +121,7 @@ Hash a raw event containing some malware threat artifact using sha256.
 
 * Attempts to encrypt or hash _\_time_ will be ignored since Splunk always expects a valid _\_time_ field.
 * Wildcards for field names are not supported (yet).
+* Encryption and decryption of big quantities of data can be ressource intensive operations. Use with caution in old or feeble environments.
 * Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
 * To implement proper key/salt management (without relying on my weak JavaScript skills for a management dashboard) the add-on leverages the comfort Splunk Add-On Builder grants. \
 This is why your key/salt configurations are stored as modular input configurations. Don't worry, they are not used as such. A future version of the add-on might implement this better.
@@ -131,10 +132,12 @@ This is why your key/salt configurations are stored as modular input configurati
 This enables the technically savvy user to potentially read more secrets via Splunk's REST API than desirable. \
 Unfortunately as of now there is no way around this if the encryption/decryption keys and salts used for this app's function should not be stored in plaintext on disk. \
 You can argue this way or that. My assumption is that only high-privileged users will use the crypto functionality in the first place, and thus prefferred encrypted keys over potentially exessive permissions.
-* The keys and salts you upload are stored encrypted in _passwords.conf_. However to quote a Splunk blog post: "[...] Since the encrypted data and the encryption key are stored on the same machine, cryptographically this is equivalent to obfuscation. While some people might argue that this is very weak encryption, it is the best we can do with storing the encrypted data and encryption key on the same machine and it is definitely better than clear text passwords [...]"[3].
+* The keys and salts you upload are stored encrypted in _passwords.conf_. However to quote a Splunk blog post: "[...] Since the encrypted data and the encryption key are stored on the same machine, cryptographically this is equivalent to obfuscation. While some people might argue that this is very weak encryption, it is the best we can do with storing the encrypted data and encryption key on the same machine and it is definitely better than clear text passwords [...]"[0].
 
+* The used libraries (see _Attribution_) have been chosen due to their compatibility with multiple Python versions and OSes. They might not be the best implementations of the respective algorithms and are certainly not the fastest, but more popular implementations posed compatibility challenges due to relying on platform-specific compiled c modules.
 * The used RSA implementation is only capable of processing so many bytes of data at once during encryption, fields larger than that value have to be split into blocks. This might enable certain attacks on the RSA crypto system. To mitigate the chances of a successful attack, random padding (PKCS#1 v2 (OAEP)) is used and can not anymore be disabled in this version of the add-on.
 * Using 1024 bit RSA keys is generally considered unsafe and therefore not possible using with the add-on.
+* I chose AES-CBC and AES-OFB as the only available modes as they offer the best balance between performance and security for the purposes of this add-on.
 
 * It is not recommended to use MD5 or SHA1 (on passwords) since these hashing algorithms are not seen as safe anymore.
 * SHA3 and Blake2 are only available when using Python3 as your environments interpreter.
@@ -144,11 +147,12 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Major overhaul for Splunk 8 compatibility
 * Ensured cross-compatibility for Python 2 and 3
 * Re-implement support for encrypted private RSA keys
-* Implement possibility for AES-128/192/256-CBC field/event encryption & decryption
 * Disable helper inputs by default
+* Do proper testing (4069 bit keys, performance, error handling)
 * Test with Splunk 7.x
 * Enhance performance
 * Potentially implement support for wildcards for field names
+* Add a logo
 
 ## History
 
@@ -158,11 +162,14 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Using custom search command protocol v2 now
 * Updated README and docs with soon-to-come changes
 * Implemented proper key/salt management on per-user and per-role basis
+* Added licenses to used Python modules and gave credit
 
 * Removed keyencryption parameter from crypt command and replaced by automatic detection
 * Removed randpadding parameter and support for non-random padding
 * Implemented basic sanity checks for private/public RSA key usage during encryption/decryption attempts
 * Implemented PKCS#1 v2 (OAEP) support
+* Implemented possibility for AES-128/192/256-CBC/OFB field/event encryption & decryption
+* AES-CBC and AES-OFB are now the only parameter values and modes for AES encryption/decryption
 
 * Ensured Splunk 8 and Python 2/3 cross-compatilibity for hash command
 * Hashes will now be written to a new field with the name of the used algorithm
@@ -173,26 +180,35 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## Attribution
 
-The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (sybren@stuvel.eu) RSA implementation in Python [1] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
+The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (https://stuvel.eu/) pure-Python RSA implementation [1] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. This module itself relies on Ilya Etingof's pyasn1 Python module [1.2] which is licensed under BSD 2-Clause.
 
-Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [1.2] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. as well.
+Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [1.3] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. as well.
+
+The _crypt_ command also uses Richard Moore's (http://www.ricmoo.com/) pure-Python AES implementation [2] which is licensed under the MIT License, https://opensource.org/licenses/MIT.
 
 ## License
 
-**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [2]
+**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [3]
 
 This roughly translates to 
 
 * You may freely use, share and adapt this work non-commercially as long as you give appropriate credit. When adapting or sharing, this needs to happen under the same license, changes should be indicated.
 * You may freely use this work in a commercial environment as long as the use is not primarily intended for commercial advantage or monetary compensation. YOU MAY NOT SELL THIS WORK. Neither standalone nor within an application bundle.
 
-Please reffer to the full license for completeness and correctness. Feel free to contact me should you plan to use the add-on outside these terms.
+As this paragraph is not a substitute for the license, please reffer to _References_ for completeness and correctness. 
+
+Feel free to contact me should you plan to use the add-on outside these terms.
 
 ## References
+
+[0] https://www.splunk.com/en_us/blog/security/storing-encrypted-credentials.html
+
 [1] https://github.com/sybrenstuvel/python-rsa
 
-[1.2] https://github.com/sybrenstuvel/python-rsa/pull/126 and https://github.com/methane/python-rsa/tree/rsa_oaep
+[1.2] https://github.com/etingof/pyasn1
 
-[2] http://creativecommons.org/licenses/by-nc-sa/4.0/
+[1.3] https://github.com/sybrenstuvel/python-rsa/pull/126 and https://github.com/methane/python-rsa/tree/rsa_oaep
 
-[3] https://www.splunk.com/en_us/blog/security/storing-encrypted-credentials.html
+[2] https://github.com/ricmoo/pyaes
+
+[3] http://creativecommons.org/licenses/by-nc-sa/4.0/

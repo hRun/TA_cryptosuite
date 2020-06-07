@@ -20,6 +20,11 @@ This module implements certain functionality from PKCS#1 version 2. Main
 documentation is RFC 8017: https://tools.ietf.org/html/rfc8017
 """
 
+## MODIFICATIONS
+#  This module is not included in the original python-rsa package but customly added for OAEP support.
+#  Source code is copied from Inada Naoki's (https://twitter.com/methane) fork of the python-rsa project at https://github.com/methane/python-rsa/tree/rsa_oaep 
+#
+
 import os
 
 from rsa._compat import range, xor_bytes, PY2

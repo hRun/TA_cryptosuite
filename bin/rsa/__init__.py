@@ -23,6 +23,10 @@ prevent repetitions, or other common security improvements. Use with care.
 
 """
 
+## MODIFICATIONS
+#  Added import of custom rsa.oaep module and added to __all__
+#
+
 from rsa.key import newkeys, PrivateKey, PublicKey
 from rsa.pkcs1 import encrypt, decrypt, sign, verify, DecryptionError, \
     VerificationError, find_signature_hash,  sign_hash, compute_hash

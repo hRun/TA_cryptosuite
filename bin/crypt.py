@@ -23,8 +23,9 @@ from __future__ import print_function
 
 import base64
 import json
-import sys
+import pyaes
 import rsa
+import sys
 
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
@@ -34,14 +35,14 @@ class cryptCommand(StreamingCommand):
     """ 
     ##Syntax
 
-    crypt mode=<d|e> algorithm=<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc> key=<file_name> <field-list>
+    crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<file_name> <field-list>
 
     ##Description
     
     Values of fields provided by `field-list` are encrypted or decrypted with
     the key provided by `key` and the algorithm specified by `algorithm` depending on the mode set by `mode`.
     
-    Currently supported cryptographic algorithms are RSA and AES-128/192/256-CBC.
+    Currently supported cryptographic algorithms are RSA and AES-CBC, AES-OFB (with 128/192/256 bit keys).
     
     Encrypted private RSA keys are supported if encrypted with AES256-CBC, DES-CBC or DES-EDE3-CBC.
 
@@ -58,7 +59,7 @@ class cryptCommand(StreamingCommand):
     
     Encrypt raw events of sourcetype "mail" using AES-256-CBC and collect the results in a summary index.
     
-    search sourcetype="mail" | crypt mode=e algorithm=aes-256-cbc key=secret.txt _raw | collect index=summary
+    search sourcetype="mail" | crypt mode=e algorithm=aes-cbc key=secret.txt _raw | collect index=summary
     
     Decrypt the content of the already RSA encrypted and summary-indexed field "username" for output in plain text using RSA. 
     The key file "private.pem" is encrypted with AES-256-CBC, so the correspondig password has to be set via the app's set up screen prior to using the key.
@@ -149,7 +150,7 @@ class cryptCommand(StreamingCommand):
 
                 try:
                     key = key_dict['key_salt'][:30] + key_dict['key_salt'][30:-28:].replace(' ', '\n') + key_dict['key_salt'][-28:] + "\n"
-                    return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM')
+                    return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
 
@@ -167,7 +168,7 @@ class cryptCommand(StreamingCommand):
                         pass
                         # TODO
                         # RSA module does not support encrypted keys....
-                        raise RuntimeWarning('Unfortunately use of encrypted private RSA keys is not yet supported.'.format(e))
+                        raise RuntimeWarning('Unfortunately use of encrypted private RSA keys is not yet supported.')
                         #return RSA.import_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
                         #return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
                         #return serialization.load_pem_private_key(key_dict['key_salt'], password=key_dict['rsa_key_encryption_password'], backend=default_backend())
@@ -175,16 +176,33 @@ class cryptCommand(StreamingCommand):
                     else:
                         try:
                             key = key_dict['key_salt'][:31] + key_dict['key_salt'][31:-29:].replace(' ', '\n') + key_dict['key_salt'][-29:] + "\n"
-                            return rsa.key.PrivateKey.load_pkcs1(key.encode('utf-8'), 'PEM')
+                            return rsa.key.PrivateKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
                         except Exception as e:
                             raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
 
         # Load AES key and IV
-        elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
-            # TODO
-            pass
+        elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+            key = ""
+            iv  = ""
+
+            try:
+                if len(key_dict['key_salt']) in [49, 50]:
+                    key = key_dict['key_salt'][0:32]
+                    iv  = key_dict['key_salt'][33:49]
+                elif len(key_dict['key_salt']) in [41, 42]:
+                    key = key_dict['key_salt'][0:24]
+                    iv  = key_dict['key_salt'][25:41]
+                elif len(key_dict['key_salt']) in [33, 34]:
+                    key = key_dict['key_salt'][0:16]
+                    iv  = key_dict['key_salt'][17:33]
+                else:
+                    raise RuntimeWarning('Key and/or IV does not have the correct length. Must be 16, 24 or 32 bytes.')
+
+                return key, iv
+            except Exception as e:
+                raise RuntimeWarning('Failed to load AES key and/or IV: {0}.'.format(e))
         else:
             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
@@ -199,7 +217,7 @@ class cryptCommand(StreamingCommand):
             chunk = ""
             for i in range(0, len(field), 214):
                 try:                          
-                    chunk += base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode("utf-8")
+                    chunk += base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8')
                     #PKCS1 v1.5: chunk += base64.encodestring(rsa.encrypt(field[i:i+245].encode('utf-8'), key)).decode("utf-8")
                 except Exception as e:
                     raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
@@ -208,7 +226,7 @@ class cryptCommand(StreamingCommand):
         # Otherwise encrypt straight forward
         else:
             try:
-                return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode("utf-8")
+                return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
                 #PKCS1 v1.5: return base64.encodestring(rsa.encrypt(field.encode('utf-8'), key)).decode("utf-8")
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))   
@@ -222,7 +240,7 @@ class cryptCommand(StreamingCommand):
                     continue
                 chunk = chunk.replace('\n', '') + '=='
                 try:
-                    clear += rsa.OAEP_decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
+                    clear += rsa.OAEP_decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode('utf-8')
                     #PKCS1 v1.5: clear += rsa.decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
                 except Exception as e:
                     raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
@@ -231,17 +249,54 @@ class cryptCommand(StreamingCommand):
         # Otherwise decrypt straight forward
         else:
             try:
-                return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
+                return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
                 #PKCS1 v1.5: return rsa.decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
-    def aes_encrypt(self, fieldname, field, key):
-        # TODO
-        pass
-    def aes_decrypt(self, fieldname, field, key):
-        # TODO
-        pass
+    def aes_encrypt(self, fieldname, field, key, iv):
+        # AES-CBC
+        if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
+            try:
+                encrypter = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
+                cipher    = encrypter.feed(field)
+                cipher   += encrypter.feed()
+                return base64.encodestring(cipher).decode('utf-8')
+            except Exception as e:
+                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+
+        # AES-OFB
+        elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+            try:
+                aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
+                return base64.encodestring(aes.encrypt(field)).decode('utf-8')
+            except Exception as e:
+                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+
+        else:
+            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+
+    def aes_decrypt(self, fieldname, field, key, iv):
+        # AES-CBC
+        if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
+            try:
+                decrypter = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
+                plain     = decrypter.feed(base64.decodestring(field.encode('utf-8')))
+                plain    += decrypter.feed()
+                return plain.decode('utf-8')
+            except Exception as e:
+                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+
+        # AES-OFB
+        elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+            try:
+                aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
+                return aes.decrypt(base64.decodestring(field.encode('utf-8'))).decode('utf-8')
+            except Exception as e:
+                raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+
+        else:
+            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
 
 
@@ -250,7 +305,7 @@ class cryptCommand(StreamingCommand):
     def stream(self, events):     
         # Bind to Splunk session and initialize variables
         service = client.Service(token=self.metadata.searchinfo.session_key)
-        
+
         # Check if configuration exists for specified key
         try:
             service.confs['inputs']['crypto_settings://{0}'.format(self.key)]
@@ -263,19 +318,19 @@ class cryptCommand(StreamingCommand):
             # Continue if user is authorized for encryption and key usage
             if self.validate_user(service):
                 # Load key and do sanity checks
-                key = self.load_key(service)
-        
+                key, iv = self.load_key(service)
+
                 # Perform field encryption
                 for event in events:
                     for fieldname in self.fieldnames:
                         # Always skip _time
                         if fieldname=='_time':
                             continue
-                            
+
                         if self.algorithm == 'rsa':
                             event[fieldname] = self.rsa_encrypt(fieldname, event[fieldname], key)
-                        elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
-                            event[fieldname] = self.aes_encrypt(fieldname, event[fieldname], key)
+                        elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+                            event[fieldname] = self.aes_encrypt(fieldname, event[fieldname], key, iv)
                         else:
                             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
                     yield event
@@ -288,7 +343,7 @@ class cryptCommand(StreamingCommand):
             # Continue if user is authorized for decryption and key usage
             if self.validate_user(service):
                 # Load key and do sanity checks
-                key = self.load_key(service)
+                key, iv = self.load_key(service)
 
                 # Perform field decryption
                 for event in events:
@@ -298,8 +353,8 @@ class cryptCommand(StreamingCommand):
                         
                         if self.algorithm == 'rsa':
                             event[fieldname] = self.rsa_decrypt(fieldname, event[fieldname], key)
-                        elif self.algorithm in ['aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
-                            event[fieldname] = self.aes_decrypt(fieldname, event[fieldname], key)
+                        elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+                            event[fieldname] = self.aes_decrypt(fieldname, event[fieldname], key, iv)
                         else:
                             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
                     yield event
