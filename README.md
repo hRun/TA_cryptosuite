@@ -39,6 +39,8 @@ In order for the add-on to be fully usable you'll need to create and upload cryp
       
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that using 1024 bit keys is considered unsafe and therefore not supported by the app.
 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Important Note:** Use of encrypted private RSA keys is not yet supported!
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example "key file" creation for AES:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Put your key and IV in UTF-8 into a plain ASCII file. Key has to go on line 1 and IV on line 2.
@@ -53,7 +55,7 @@ In order for the add-on to be fully usable you'll need to create and upload cryp
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Key/Salt_: Copy-paste the contents of your generated key file here. Your key will be stored encrypted in _passwords.conf_.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_RSA key encryption password_: Only required if you are currently configuring an encrypted private RSA key. Supportd key encryption algorithms are AES-256-CBC, DES-CBC and DES-EDE3-CBC.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_RSA key encryption password_: **Important Note:** Use of encrypted private RSA keys is not yet supported! Only required if you are currently configuring an encrypted private RSA key. Supportd key encryption algorithms are AES-256-CBC, DES-CBC and DES-EDE3-CBC.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Authorized roles_: Select which roles you want to grant permissions to use the key. Will be ORed with authorized users. Users/roles will also require the "can_encrypt" and/or "can_decrypt" role in order to use the _crypt_ command in the first place.
 
@@ -122,7 +124,7 @@ Hash a raw event containing some malware threat artifact using sha256.
 * Attempts to encrypt or hash _\_time_ will be ignored since Splunk always expects a valid _\_time_ field.
 * Wildcards for field names are not supported (yet).
 * Encryption and decryption of big quantities of data can be ressource intensive operations. Use with caution in old or feeble environments.
-* Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
+* **Important Note:** Use of encrypted private RSA keys is not yet supported! Currently only AES-256-CBC, DES-CBC and DES-EDE3-CBC are supported for private RSA key file encryption.
 * To implement proper key/salt management (without relying on my weak JavaScript skills for a management dashboard) the add-on leverages the comfort Splunk Add-On Builder grants. \
 This is why your key/salt configurations are stored as modular input configurations. Don't worry, they are not used as such. A future version of the add-on might implement this better.
    
