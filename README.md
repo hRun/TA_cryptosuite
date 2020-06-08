@@ -15,15 +15,15 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
 * Version: 2.0b
-* License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [2]
+* License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [4]
 
 ## Installation
 
-1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _SA-cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
+1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _TA-cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
 2. Assign the roles 'can_encrypt' and/or 'can_decrypt' to users/roles who should be able to encrypt/decrypt data using the _crypt_ command. The _hash_ command will automatically be available to all users.
 3. Read and follow the requirements below.
 4. Optional: Set _python.version=python2_ or _python.version=python3_ in _commands.conf_ if you would like to explicitly specify the Python version to use. Otherwise this will be determined by your instance's global settings.
-5. Optional: Change the app's visibility via _Manage\>Apps_ or _app.conf_ if you wish.
+5. Optional: Change the app's visibility via _Manage\>Apps_ or _app.conf_ if you wish. Configuring new keys/salts relies on an internal dashboard though.
 
 ### Requirements
 
@@ -197,15 +197,17 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## Attribution
 
-The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (https://stuvel.eu/) pure-Python RSA implementation [1] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. This module itself relies on Ilya Etingof's pyasn1 Python module [1.2] which is licensed under BSD 2-Clause.
+The add-on relies on the Splunk Add-On builder[1], developed by Splunk and licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
 
-Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [1.3] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. as well.
+The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (https://stuvel.eu/) pure-Python RSA implementation [2] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. This module itself relies on Ilya Etingof's pyasn1 Python module [2.2] which is licensed under BSD 2-Clause.
 
-The _crypt_ command also uses Richard Moore's (http://www.ricmoo.com/) pure-Python AES implementation [2] which is licensed under the MIT License, https://opensource.org/licenses/MIT.
+Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [2.3] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. as well.
+
+The _crypt_ command also uses Richard Moore's (http://www.ricmoo.com/) pure-Python AES implementation [3] which is licensed under the MIT License, https://opensource.org/licenses/MIT.
 
 ## License
 
-**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [3]
+**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [4]
 
 This roughly translates to 
 
@@ -220,12 +222,14 @@ Feel free to contact me should you plan to use the add-on outside these terms.
 
 [0] https://www.splunk.com/en_us/blog/security/storing-encrypted-credentials.html
 
-[1] https://github.com/sybrenstuvel/python-rsa
+[1] https://splunkbase.splunk.com/app/2962
 
-[1.2] https://github.com/etingof/pyasn1
+[2] https://github.com/sybrenstuvel/python-rsa
 
-[1.3] https://github.com/sybrenstuvel/python-rsa/pull/126 and https://github.com/methane/python-rsa/tree/rsa_oaep
+[2.2] https://github.com/etingof/pyasn1
 
-[2] https://github.com/ricmoo/pyaes
+[2.3] https://github.com/sybrenstuvel/python-rsa/pull/126 and https://github.com/methane/python-rsa/tree/rsa_oaep
 
-[3] http://creativecommons.org/licenses/by-nc-sa/4.0/
+[3] https://github.com/ricmoo/pyaes
+
+[4] http://creativecommons.org/licenses/by-nc-sa/4.0/
