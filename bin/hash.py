@@ -18,10 +18,10 @@ import json
 import sys
 
 import splunklib.client as client
-from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
+from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
 
 @Configuration()
-class hashCommand(StreamingCommand):
+class hashCommand(EventingCommand):
     """ 
     ##Syntax
 
@@ -106,7 +106,7 @@ class hashCommand(StreamingCommand):
 
     ## Sort of "__main__"
     #
-    def stream(self, events):
+    def transform(self, events):
         # Bind to Splunk session and initialize variables
         service = client.Service(token=self.metadata.searchinfo.session_key)
         salt    = ""
