@@ -5,7 +5,7 @@
     for encrypting and decrypting fields during search time using RSA or AES.
     
     Author: Harun Kuessner
-    Version: 2.0b
+    Version: 2.0.1b
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
@@ -83,10 +83,7 @@ class cryptCommand(EventingCommand):
     ## Helper to check if a user is privileged to do what he is trying to do
     #
     def validate_user(self, service):
-        auth_roles = []
-        auth_users = []
-        user       = self._metadata.searchinfo.username
-        roles      = []
+        user, roles, auth_users, auth_roles = self._metadata.searchinfo.username, [], [], []
 
         try:
             auth_roles = service.confs['inputs']['crypto_settings://{0}'.format(self.key)]['authorized_roles'].split('~')
@@ -113,7 +110,6 @@ class cryptCommand(EventingCommand):
             for role in roles:
                 if role in auth_roles:
                     return True
-
         return False
 
 
@@ -122,10 +118,8 @@ class cryptCommand(EventingCommand):
     #
     def load_key(self, service):
         stored_key = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.key))
-        key_dict   = ""
+        key_dict   = ''.join([chunk.clear_password if 'data/inputs/crypto_settings:{0}'.format(self.key) in chunk.name else '' for chunk in stored_key])
 
-        for chunk in stored_key:
-            key_dict += chunk.clear_password if 'data/inputs/crypto_settings:{0}'.format(self.key) in chunk.name else ""
         if not key_dict.startswith('{'):
             key_dict = json.loads(''.join(key_dict.split('``splunk_cred_sep``', 1)[::-1]).split('``splunk_cred_sep``')[-1])
         else:
@@ -177,8 +171,7 @@ class cryptCommand(EventingCommand):
 
         # Load AES key and IV
         elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
-            key = ""
-            iv  = ""
+            key, iv = "", ""
 
             try:
                 if len(key_dict['key_salt']) in [49, 50]:
@@ -192,7 +185,6 @@ class cryptCommand(EventingCommand):
                     iv  = key_dict['key_salt'][17:33]
                 else:
                     raise RuntimeWarning('Key and/or IV does not have the correct length. Must be 16, 24 or 32 bytes.')
-
                 return key, iv
             except Exception as e:
                 raise RuntimeWarning('Failed to load AES key and/or IV: {0}.'.format(e))
@@ -203,46 +195,31 @@ class cryptCommand(EventingCommand):
 
     ## Helpers for encryption and decryption
     #
-    def rsa_encrypt(self, fieldname, field, key): 
-        # Split fields bigger than 214 bytes (PKCS1 v1.5: 256-11 bytes)
+    def rsa_encrypt(self, fieldname, field, key, iv=None): 
+        # Split fields bigger than 214 bytes
         if len(field) > 214:
-            chunk = ""
-            for i in range(0, len(field), 214):
-                try:                          
-                    chunk += base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8')
-                    #PKCS1 v1.5: chunk += base64.encodestring(rsa.encrypt(field[i:i+245].encode('utf-8'), key)).decode("utf-8")
-                except Exception as e:
+            try:
+                return ''.join([base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8') for i in range(0, len(field), 214)])
+            except Exception as e:
                     raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
-            return chunk
-
         # Otherwise encrypt straight forward
         else:
             try:
                 return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
-                #PKCS1 v1.5: return base64.encodestring(rsa.encrypt(field.encode('utf-8'), key)).decode("utf-8")
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))   
 
-    def rsa_decrypt(self, fieldname, field, key):
+    def rsa_decrypt(self, fieldname, field, key, iv=None):
         # Rejoin fields split into blocks during encryption
         if len(field.replace('\n', '')) > 344:
-            clear = ""
-            for chunk in field.split('=='):
-                if len(chunk) <= 1:
-                    continue
-                chunk = chunk.replace('\n', '') + '=='
-                try:
-                    clear += rsa.OAEP_decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode('utf-8')
-                    #PKCS1 v1.5: clear += rsa.decrypt(base64.decodestring(chunk.encode('utf-8')), key).decode("utf-8")
-                except Exception as e:
-                    raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
-            return clear
-
+            try:
+                return ''.join([rsa.OAEP_decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), key).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+            except Exception as e:
+                raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
         # Otherwise decrypt straight forward
         else:
             try:
                 return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
-                #PKCS1 v1.5: return rsa.decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode("utf-8")
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -304,11 +281,23 @@ class cryptCommand(EventingCommand):
         except:
             raise RuntimeWarning('Specified key file "{0}" does not exist. Please check the spelling of your specified key name or your configured keys.'.format(self.key))
 
+        # TODO: Increase performance
+        	# Check out decorator caching
+        	# Do code profiling to find bottlenecks
+
         # ENCRYPTION
         #
         if self.mode == 'e':
             # Continue if user is authorized for encryption and key usage
             if self.validate_user(service):
+                # Set encryption method
+                if self.algorithm == 'rsa':
+                    _encrypt = self.rsa_encrypt
+                elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+                    _encrypt = self.aes_encrypt
+                else:
+                    raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+
                 # Load key and do sanity checks
                 key, iv = self.load_key(service)
 
@@ -318,13 +307,7 @@ class cryptCommand(EventingCommand):
                         # Always skip _time
                         if fieldname=='_time':
                             continue
-
-                        if self.algorithm == 'rsa':
-                            event[fieldname] = self.rsa_encrypt(fieldname, event[fieldname], key)
-                        elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
-                            event[fieldname] = self.aes_encrypt(fieldname, event[fieldname], key, iv)
-                        else:
-                            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+                        event[fieldname] = _encrypt(fieldname, event[fieldname], key, iv)
                     yield event
             else:
                 raise RuntimeWarning('User "{0}" is not authorized to use the specified encryption key.'.format(self._metadata.searchinfo.username))
@@ -334,6 +317,14 @@ class cryptCommand(EventingCommand):
         elif self.mode == 'd':
             # Continue if user is authorized for decryption and key usage
             if self.validate_user(service):
+                # Set decryption mode
+                if self.algorithm == 'rsa':
+                    _decrypt = self.rsa_decrypt
+                elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
+                    _decrypt = self.aes_decrypt
+                else:
+                    raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+
                 # Load key and do sanity checks
                 key, iv = self.load_key(service)
 
@@ -342,13 +333,7 @@ class cryptCommand(EventingCommand):
                     for fieldname in self.fieldnames:
                         if fieldname=='_time':
                             continue
-                        
-                        if self.algorithm == 'rsa':
-                            event[fieldname] = self.rsa_decrypt(fieldname, event[fieldname], key)
-                        elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
-                            event[fieldname] = self.aes_decrypt(fieldname, event[fieldname], key, iv)
-                        else:
-                            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+                        event[fieldname] = _decrypt(fieldname, event[fieldname], key, iv)
                     yield event
             else:
                 raise RuntimeWarning('User "{0}" is not authorized to use the specified decryption key.'.format(self._metadata.searchinfo.username))

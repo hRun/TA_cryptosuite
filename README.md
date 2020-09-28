@@ -14,7 +14,7 @@ Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.0.2.1.
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
-* Version: 2.0b
+* Version: 2.0.1b
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [4]
 
 ## Installation
@@ -148,6 +148,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 * Some more testing of error handling
 * Test with Splunk 7.x
+* Increase performance
 * When saving keys/salts Splunk sometimes randomly removes \\n or spaces for no apparent reason. Need to account for this in the code.
 
 ### v2.1 plan
@@ -165,6 +166,10 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Implement _obfuscate_ command to enable (de)obfuscating data using XOR, ROT-13, ...
 
 ## History
+
+### v2.0.1b
+
+* Fixed support for distributed environments
 
 ### v2.0b
 
