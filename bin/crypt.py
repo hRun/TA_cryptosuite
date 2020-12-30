@@ -5,7 +5,7 @@
     for encrypting and decrypting fields during search time using RSA or AES.
     
     Author: Harun Kuessner
-    Version: 2.0.1b
+    Version: 2.1a
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
@@ -14,9 +14,18 @@ from __future__ import print_function
 
 import base64
 import json
-import pyaes
-import rsa
 import sys
+
+try:
+    sys.path.append('/path/to/os-wide/python3.7/site-packages')
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.primitives import serialization, hashes
+    from cryptography.hazmat.primitives.asymmetric import padding
+    module = True
+except (ImportError, ModuleNotFoundError) as e:
+    import pyaes
+    import rsa
+    module = False
 
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
@@ -132,62 +141,73 @@ class cryptCommand(EventingCommand):
             # Load RSA public key
             if self.mode == 'e':
                 if not ' PUBLIC KEY-----' in key_dict['key_salt']:
-                    raise RuntimeWarning('Currently only public RSA keys in PEM format are supported. Please specify a valid public key file.')
+                    raise RuntimeWarning('Only public RSA keys in PEM format are supported. Please specify a valid public key file.')
                 if len(key_dict['key_salt'].strip('\n').split('-----')[-3]) < 220:
                     raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
                 try:
-                    key = "-----BEGIN RSA PUBLIC KEY-----" + key_dict['key_salt'].split('-----')[2].replace(' ', '\n') + "-----END RSA PUBLIC KEY-----"
-                    return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
+                    key = "-----BEGIN RSA PUBLIC KEY-----\n"
+                    for i in range(0, len(''.join(key_dict['key_salt'].split('-----')[2])), 64):
+                        key +='{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2])[i:i+64])
+                    key += "-----END RSA PUBLIC KEY-----"
+                    if module:
+                        return serialization.load_pem_public_key(key.encode('utf-8'), backend=None), None
+                    else:
+                        return rsa.key.PublicKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
                 except Exception as e:
                     raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
 
             # Load RSA private key
             else:
                 if not ' PRIVATE KEY-----' in key_dict['key_salt']:
-                    raise RuntimeWarning('Currently only private RSA keys in PEM format are supported. Please specify a valid private key file.')
+                    raise RuntimeWarning('Only private RSA keys in PEM format are supported. Please specify a valid private key file.')
                 if len(key_dict['key_salt'].strip('\n').split('-----')[-3]) < 824:
                     raise RuntimeWarning('1024 bit RSA keys are generally considered insecure and are therefore unsupported. Please use a larger key.')
 
                 try:
                     if 'DEK-Info:' in key_dict['key_salt'] and 'rsa_key_encryption_password' not in key_dict:
                         raise RuntimeWarning('No password was configured for encrypted private key. Please configure one before using this key.')
-                    if 'DEK-Info:' in key_dict['key_salt']:
-                        raise RuntimeWarning('Unfortunately use of encrypted private RSA keys is not yet supported. Support will be implemented with the next version of the add-on.')
-                        # TODO
-                        # RSA module does not support encrypted keys...
-                        # Need to either implement this or use another module like so:
-                        #return RSA.import_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
-                        #return M2Crypto.RSA.load_key(key_dict['key_salt'], key_dict['rsa_key_encryption_password'])
-                        #return serialization.load_pem_private_key(key_dict['key_salt'], password=key_dict['rsa_key_encryption_password'], backend=default_backend())
+                    elif 'DEK-Info:' in key_dict['key_salt'] and not module:
+                        raise RuntimeWarning('Use of encrypted private RSA keys is only supported if the "cryptography" python package is installed and configured via the app\'s setup screen.')
+                    elif 'DEK-Info:' in key_dict['key_salt'] and module:
+                        key = ' '.join(key_dict['key_salt'].split(' ')[0:4]) + '\n' + ' '.join(key_dict['key_salt'].split(' ')[4:6]) + '\n' + ' '.join(key_dict['key_salt'].split(' ')[6:8]) + '\n\n'
+                        for i in range(0, len(''.join(key_dict['key_salt'].split('-----')[2].split(' ')[5::])), 64):
+                            key +='{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2].split(' ')[5::])[i:i+64])
+                        key += "-----END RSA PRIVATE KEY-----"
+                        return serialization.load_pem_private_key(key.encode('utf-8'), password=key_dict['rsa_key_encryption_password'].encode('utf-8'), backend=None), None
                     else:
-                        try:
-                            key = "-----BEGIN RSA PRIVATE KEY-----" + key_dict['key_salt'].split('-----')[2].replace(' ', '\n') + "-----END RSA PRIVATE KEY-----"
+                        key = "-----BEGIN RSA PRIVATE KEY-----\n"
+                        for i in range(0, len(''.join(key_dict['key_salt'].split('-----')[2])), 64):
+                            key +='{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2])[i:i+64])
+                        key += "-----END RSA PRIVATE KEY-----"
+                        if module:
+                            return serialization.load_pem_private_key(key.encode('utf-8'), password=None, backend=None), None
+                        else:
                             return rsa.key.PrivateKey.load_pkcs1(key.encode('utf-8'), 'PEM'), None
-                        except Exception as e:
-                            raise RuntimeWarning('Failed to load specified public key: {0}.'.format(e))
                 except Exception as e:
-                    raise RuntimeWarning('Failed to load specified private key: {0}'.format(e))
+                    raise RuntimeWarning('Failed to load specified private key: {0}'.format(e), key)
 
         # Load AES key and IV
         elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
             key, iv = "", ""
+            key_dict['key_salt'].strip(' \r\n')
 
             try:
-                if len(key_dict['key_salt']) in [49, 50]:
+                if len(key_dict['key_salt']) in [48, 49, 50]:
                     key = key_dict['key_salt'][0:32]
-                    iv  = key_dict['key_salt'][33:49]
-                elif len(key_dict['key_salt']) in [41, 42]:
+                    iv  = key_dict['key_salt'][-16::]
+                elif len(key_dict['key_salt']) in [40, 41, 42]:
                     key = key_dict['key_salt'][0:24]
-                    iv  = key_dict['key_salt'][25:41]
-                elif len(key_dict['key_salt']) in [33, 34]:
+                    iv  = key_dict['key_salt'][-16::]
+                elif len(key_dict['key_salt']) in [32, 33, 34]:
                     key = key_dict['key_salt'][0:16]
-                    iv  = key_dict['key_salt'][17:33]
+                    iv  = key_dict['key_salt'][-16::]
                 else:
-                    raise RuntimeWarning('Key and/or IV does not have the correct length. Must be 16, 24 or 32 bytes.')
+                    raise RuntimeWarning('Key and/or IV do not have the correct length. Key must be 16, 24 or 32 bytes. IV must be 16 bytes.')
                 return key, iv
             except Exception as e:
                 raise RuntimeWarning('Failed to load AES key and/or IV: {0}.'.format(e))
+
         else:
             raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
@@ -197,15 +217,21 @@ class cryptCommand(EventingCommand):
     #
     def rsa_encrypt(self, fieldname, field, key, iv=None): 
         # Split fields bigger than 214 bytes
-        if len(field) > 214:
+        if (module and len(field) > 189) or len(field) > 214:
             try:
-                return ''.join([base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8') for i in range(0, len(field), 214)])
+                if module:
+                    return ''.join([base64.encodestring(key.encrypt(field[i:i+189].encode('utf-8'), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))).decode('utf-8') for i in range(0, len(field), 189)])
+                else:
+                    return ''.join([base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8') for i in range(0, len(field), 214)])
             except Exception as e:
                     raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
         # Otherwise encrypt straight forward
         else:
             try:
-                return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
+                if module:
+                    return base64.encodestring(key.encrypt(field.encode('utf-8'), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))).decode('utf-8')
+                else:
+                    return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))   
 
@@ -213,13 +239,19 @@ class cryptCommand(EventingCommand):
         # Rejoin fields split into blocks during encryption
         if len(field.replace('\n', '')) > 344:
             try:
-                return ''.join([rsa.OAEP_decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), key).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+                if module:
+                    return ''.join([key.decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+                else:
+                    return ''.join([rsa.OAEP_decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), key).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
         # Otherwise decrypt straight forward
         else:
             try:
-                return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
+                if module:
+                    return key.decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)).decode('utf-8')
+                else:
+                    return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -227,18 +259,29 @@ class cryptCommand(EventingCommand):
         # AES-CBC
         if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
             try:
-                encrypter = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
-                cipher    = encrypter.feed(field)
-                cipher   += encrypter.feed()
-                return base64.encodestring(cipher).decode('utf-8')
+                if module:
+                    cipher      = Cipher(algorithms.AES(key.encode('utf-8')), modes.CBC(iv.encode('utf-8')))
+                    encryptor   = cipher.encryptor()
+                    cipher_text = encryptor.update(field.encode('utf-8')) + encryptor.finalize()
+                else:
+                    encryptor    = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
+                    cipher_text  = encryptor.feed(field.encode('utf-8'))
+                    cipher_text += encryptor.feed()
+                return base64.encodestring(cipher_text).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
         # AES-OFB
         elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
             try:
-                aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
-                return base64.encodestring(aes.encrypt(field)).decode('utf-8')
+                if module:
+                    cipher      = Cipher(algorithms.AES(key.encode('utf-8')), modes.OFB(iv.encode('utf-8')))
+                    encryptor   = cipher.encryptor()
+                    cipher_text = encryptor.update(field.encode('utf-8')) + encryptor.finalize()
+                    return base64.encodestring(cipher_text).decode('utf-8')
+                else:
+                    aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
+                    return base64.encodestring(aes.encrypt(field.encode('utf-8'))).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -249,18 +292,30 @@ class cryptCommand(EventingCommand):
         # AES-CBC
         if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
             try:
-                decrypter = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
-                plain     = decrypter.feed(base64.decodestring(field.encode('utf-8')))
-                plain    += decrypter.feed()
-                return plain.decode('utf-8')
+                if module:
+                    cipher      = Cipher(algorithms.AES(key.encode('utf-8')), modes.CBC(iv.encode('utf-8')))
+                    decryptor   = cipher.decryptor()
+                    plain_text  = decryptor.update(base64.decodestring(field.encode('utf-8'))) + decryptor.finalize()
+                    return plain_text.decode('utf-8')
+                else:
+                    decryptor   = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
+                    plain_text  = decryptor.feed(base64.decodestring(field.encode('utf-8')))
+                    plain_text += decryptor.feed()
+                    return plain_text.decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
         # AES-OFB
         elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
             try:
-                aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
-                return aes.decrypt(base64.decodestring(field.encode('utf-8'))).decode('utf-8')
+                if module:
+                    cipher      = Cipher(algorithms.AES(key.encode('utf-8')), modes.OFB(iv.encode('utf-8')))
+                    decryptor   = cipher.decryptor()
+                    plain_text  = decryptor.update(base64.decodestring(field.encode('utf-8'))) + decryptor.finalize()
+                    return plain_text.decode('utf-8')
+                else:
+                    aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
+                    return aes.decrypt(base64.decodestring(field.encode('utf-8'))).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -281,9 +336,9 @@ class cryptCommand(EventingCommand):
         except:
             raise RuntimeWarning('Specified key file "{0}" does not exist. Please check the spelling of your specified key name or your configured keys.'.format(self.key))
 
-        # TODO: Increase performance
-        	# Check out decorator caching
-        	# Do code profiling to find bottlenecks
+        # TODO: Check and test if itertools might be useable at some point
+        # TODO: Check out decorator caching
+        # TODO: Do code profiling to find bottlenecks
 
         # ENCRYPTION
         #
