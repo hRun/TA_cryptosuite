@@ -14,7 +14,7 @@ Cross-compatible with Python 2 and 3. Tested with Splunk Enterprise 8.0.2.1 on L
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
-* Version: 2.1b
+* Version: 2.1
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 ## Installation
@@ -84,7 +84,7 @@ If you plan on salting your hashes, create and store upload salts like so:
 **Note**: Handling keys and salts this way is a security feature, since specifing the key/salt directly in a Splunk search directly would make them visible in the \_internal index.
 
 
-**On the use of encrypted private RSA keys and used Python libraries**: By default the add-on uses a pure-Python implementation of the RSA (and AES) algorithm which comes shipped with the add-on for all platforms. This implementation does not support usage of encrypted private RSA keys. Their usage is only possible by installing the "pycryptodomex" Python package to your OS's installation of an instance of Python 3.7.8 or 2.7.17 (see https://www.pycryptodome.org/en/latest/src/installation.html). After the package's successful installation, configure this add-on to make use of the system Python's installed packages through the add-on's setup screen. Unfortunately due to Splunk's built-in Python's poor handling of 3rd party packages, the package cannot be installed to only that instance of Python.
+**On the use of encrypted private RSA keys and used Python libraries**: By default the add-on uses a pure-Python implementation of the RSA (and AES) algorithm which comes shipped with the add-on for all platforms. This implementation does not support usage of encrypted private RSA keys. Their usage is only possible by installing the "pycryptodomex" Python package to your OS's installation of an instance of Python 3.7.8 or 2.7.17 (see https://www.pycryptodome.org/en/latest/src/installation.html). After the package's successful installation, configure this add-on to make use of the system Python's installed packages through the add-on's configuration page. Unfortunately due to Splunk's built-in Python's poor handling of 3rd party packages, the package cannot be installed to only that instance of Python.
 
 ## Usage
 
@@ -153,15 +153,10 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Test with Splunk 7.x
 * Increase performance
 
-### v2.1 plan
-
-* Re-implement support for encrypted private RSA keys
-* Implement setup page for configuration of system Python's site package location
-* Disable helper inputs by default
-
 ### v2.2 plan
 
 * Enhance performance
+* Disable helper inputs by default
 * Potentially implement support for wildcards for field names
 
 ### v2.3 plan
@@ -169,6 +164,10 @@ You can argue this way or that. My assumption is that only high-privileged users
 * Implement _obfuscate_ command to enable (de)obfuscating data using XOR, ROT-13, ...
 
 ## History
+
+### v2.1
+
+* Tested and documented support for encrypted private RSA keys
 
 ### v2.1b
 

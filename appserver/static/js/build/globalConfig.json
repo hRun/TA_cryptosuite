@@ -47,12 +47,37 @@
                             "defaultValue": "INFO"
                         }
                     ]
+                },
+                {
+                    "name": "additional_parameters",
+                    "title": "Add-on Settings",
+                    "entity": [
+                        {
+                            "field": "site_packages",
+                            "label": "Python site-packages location",
+                            "type": "text",
+                            "help": "This parameter is optional and only required if usage of encrypted private RSA keys needs to be supported. If specified, the crypt command will attempt to import the \"pycryptodomex\" package from here ",
+                            "required": false,
+                            "defaultValue": "",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "/absolute_path_to_local_python_installation/site-packages"
+                            }
+                        }
+                    ]
                 }
             ]
         },
         "inputs": {
-            "title": "Key and Salt Management",
-            "description": "Manage your keys and salts",
+            "title": "Inputs",
+            "description": "Manage your data inputs",
             "table": {
                 "header": [
                     {
@@ -60,16 +85,16 @@
                         "label": "Name"
                     },
                     {
-                        "field": "type_of_data",
-                        "label": "Type"
+                        "field": "interval",
+                        "label": "Interval"
                     },
                     {
-                        "field": "authorized_roles",
-                        "label": "Authorized roles"
+                        "field": "index",
+                        "label": "Index"
                     },
                     {
-                        "field": "authorized_users",
-                        "label": "Authorized users"
+                        "field": "disabled",
+                        "label": "Status"
                     }
                 ],
                 "moreInfo": [
@@ -78,8 +103,20 @@
                         "label": "Name"
                     },
                     {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    },
+                    {
                         "field": "type_of_data",
-                        "label": "Type of data"
+                        "label": "Type of Data"
                     },
                     {
                         "field": "key_salt",
@@ -91,16 +128,18 @@
                     },
                     {
                         "field": "authorized_roles",
-                        "label": "Authorized roles"
+                        "label": "Authorized Roles"
                     },
                     {
                         "field": "authorized_users",
-                        "label": "Authorized users"
+                        "label": "Authorized Users"
                     }
                 ],
                 "actions": [
                     "edit",
-                    "delete"
+                    "enable",
+                    "delete",
+                    "clone"
                 ]
             },
             "services": [
@@ -112,19 +151,55 @@
                             "field": "name",
                             "label": "Name",
                             "type": "text",
-                            "help": "Enter the (file) name you want your key/salt file to have ",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "type": "text",
+                            "required": true,
+                            "help": "Time interval of input in seconds.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\-[1-9]\\d*$|^\\d*$",
+                                    "errorMsg": "Interval must be an integer."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "blackList": "^_.*$",
+                                "createSearchChoice": true
+                            },
                             "required": true,
                             "validators": [
                                 {
                                     "type": "string",
-                                    "minLength": 3,
-                                    "maxLength": 100,
-                                    "errorMsg": "Length of file name should be between 3 and 100."
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
                                 }
-                            ],
-                            "options": {
-                                "placeholder": "my_rsa_key.pem"
-                            }
+                            ]
                         },
                         {
                             "field": "type_of_data",
@@ -158,7 +233,7 @@
                                     "type": "string",
                                     "minLength": 0,
                                     "maxLength": 8192,
-                                    "errorMsg": "Max length of key field is 8192."
+                                    "errorMsg": "Max length of password is 8192"
                                 }
                             ],
                             "options": {
@@ -186,26 +261,50 @@
                         },
                         {
                             "field": "authorized_roles",
-                            "label": "Authorized roles",
+                            "label": "Authorized Roles",
                             "help": "Specify which roles should be authorized to use this key/salt file.",
                             "required": false,
                             "type": "multipleSelect",
                             "options": {
-							    "delimiter": "~",
-                                "endpointUrl": "authorization/roles",
-                                "createSearchChoice": true
+                                "delimiter": "~",
+                                "items": [
+                                    {
+                                        "value": "option1",
+                                        "label": "Option1"
+                                    },
+                                    {
+                                        "value": "option2",
+                                        "label": "Option2"
+                                    },
+                                    {
+                                        "value": "option3",
+                                        "label": "Option3"
+                                    }
+                                ]
                             }
                         },
                         {
                             "field": "authorized_users",
-                            "label": "Authorized users",
+                            "label": "Authorized Users",
                             "help": "Specify which users should be authorized to use this key/salt file.",
                             "required": false,
                             "type": "multipleSelect",
                             "options": {
-							    "delimiter": "~",
-                                "endpointUrl": "authentication/users",
-                                "createSearchChoice": true
+                                "delimiter": "~",
+                                "items": [
+                                    {
+                                        "value": "option1",
+                                        "label": "Option1"
+                                    },
+                                    {
+                                        "value": "option2",
+                                        "label": "Option2"
+                                    },
+                                    {
+                                        "value": "option3",
+                                        "label": "Option3"
+                                    }
+                                ]
                             }
                         }
                     ]
