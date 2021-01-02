@@ -14,7 +14,7 @@ Cross-compatible with Python 2 and 3. Tested with Splunk Enterprise 8.0.2.1 on L
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
-* Version: 2.1a
+* Version: 2.1b
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 ## Installation
@@ -39,7 +39,7 @@ In order for the add-on to be fully usable you'll need to create and upload cryp
       
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that using 1024 bit keys is considered unsafe and therefore not supported by the app.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Important Note:** Use of encrypted private RSA keys is only supported when having the "cryptography" Python package installed (see below)!
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**Important Note:** Use of encrypted private RSA keys is only supported when having the "pycryptodomex" Python package installed (see below)!
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example "key file" creation for AES:
 
@@ -55,7 +55,7 @@ In order for the add-on to be fully usable you'll need to create and upload cryp
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Key/Salt_: Copy-paste the contents of your generated key file here. Your key will be stored encrypted in _passwords.conf_.
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_RSA key encryption password_: Only required if you are currently configuring an encrypted private RSA key. Supported key encryption algorithms are AES-256-CBC, DES-CBC and DES-EDE3-CBC. **Important Note:** Use of encrypted private RSA keys is only supported when having the "cryptography" Python package installed (see below)!
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_RSA key encryption password_: Only required if you are currently configuring an encrypted private RSA key. Supported key encryption algorithms are AES-256-CBC, DES-CBC and DES-EDE3-CBC. **Important Note:** Use of encrypted private RSA keys is only supported when having the "pycryptodomex" Python package installed (see below)!
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_Authorized roles_: Select which roles you want to grant permissions to use the key. Will be ORed with authorized users. Users/roles will also require the "can_encrypt" and/or "can_decrypt" role in order to use the _crypt_ command in the first place.
 
@@ -84,7 +84,7 @@ If you plan on salting your hashes, create and store upload salts like so:
 **Note**: Handling keys and salts this way is a security feature, since specifing the key/salt directly in a Splunk search directly would make them visible in the \_internal index.
 
 
-Usage of encrypted private RSA keys is only possible by installing the "cryptography" Python package to the system's installation of an instance of Python 3.7.8. This is due to Splunk's poor handling of non-pure Python 3rd party packages. After the packages sucessful installation, configure this add-on to make use of the system Python's installed packages through the add-on's setup screen.
+**On the use of encrypted private RSA keys and used Python libraries**: By default the add-on uses a pure-Python implementation of the RSA (and AES) algorithm which comes shipped with the add-on for all platforms. This implementation does not support usage of encrypted private RSA keys. Their usage is only possible by installing the "pycryptodomex" Python package to your OS's installation of an instance of Python 3.7.8 or 2.7.17 (see https://www.pycryptodome.org/en/latest/src/installation.html). After the package's successful installation, configure this add-on to make use of the system Python's installed packages through the add-on's setup screen. Unfortunately due to Splunk's built-in Python's poor handling of 3rd party packages, the package cannot be installed to only that instance of Python.
 
 ## Usage
 
@@ -156,6 +156,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 ### v2.1 plan
 
 * Re-implement support for encrypted private RSA keys
+* Implement setup page for configuration of system Python's site package location
 * Disable helper inputs by default
 
 ### v2.2 plan
@@ -169,10 +170,15 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## History
 
+### v2.1b
+
+* Replaced "cryptography" with "pycryptodomex" as compatibility is better
+
 ### v2.1a
 
 * Re-implemented support for encrypted private RSA keys through the "cryptography" Python package
 * Accounting for Splunk sometimes randomly removing \\n or spaces for no apparent reason when saving keys/salts
+* Updated Splunk Python SDK
 
 ### v2.0.1b
 
@@ -217,7 +223,7 @@ Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada 
 
 The _crypt_ command also uses Richard Moore's (http://www.ricmoo.com/) pure-Python AES implementation [3] which is licensed under the MIT License, https://opensource.org/licenses/MIT.
 
-When including a system wide Python installation's package library, the add-on will make use of Python's "cryptography" package [4] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
+When including a system wide Python installation's package library, the add-on will make use of Python's "pycryptodomex" package [4] which is partially in the public domain and partially released under the BSD 2-Clause license https://www.pycryptodome.org/en/latest/src/license.html.
 
 ## License
 
@@ -246,6 +252,6 @@ Feel free to contact me should you plan to use the add-on outside these terms.
 
 [3] https://github.com/ricmoo/pyaes
 
-[4] https://pypi.org/project/cryptography/
+[4] https://pypi.org/project/pycryptodomex/
 
 [5] http://creativecommons.org/licenses/by-nc-sa/4.0/
