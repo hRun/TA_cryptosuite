@@ -6,7 +6,7 @@
     algorithms MD5, SHA1, SHA2 (224, 256, 384, 512), SHA3 (224, 256, 384, 512), Blake2.
     
     Author: Harun Kuessner
-    Version: 2.1.1
+    Version: 2.1
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 

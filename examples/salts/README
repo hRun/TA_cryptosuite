@@ -1,6 +1,5 @@
 The salt file in this folder has been created for the purpose of testing.
-Feel free to use it further on for testing but don't use it in a productive environment, \
-since the file is available publicly via downloads of this app.
+Feel free to use it further on for testing but don't use it in a productive environment, since the file is available publicly via downloads of this app.
 
 When creating your own salts note that
   - A salt is used as an additional input to hashing to improve security by mitigating dictionary attacks. \
