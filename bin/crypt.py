@@ -26,7 +26,7 @@ class cryptCommand(EventingCommand):
     """ 
     ##Syntax
 
-    crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<file_name> <field-list>
+    crypt mode=(e|d) algorithm=(rsa|aes-cbc|aes-ofb) key=<string> <field-list>
 
     ##Description
     
@@ -62,19 +62,19 @@ class cryptCommand(EventingCommand):
 
     mode = Option(
         doc='''
-        **Syntax:** **mode=***<d|e>*
+        **Syntax:** **mode=***(d|e)*
         **Description:** d for decryption or e for encryption''',
         require=True)
 
     algorithm = Option(
         doc='''
-        **Syntax:** **algorithm=***<rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc>*
+        **Syntax:** **algorithm=***(rsa|aes-128-cbc|aes-192-cbc|aes-256-cbc)*
         **Description:** cryptographic algorithm to use''',
         require=True)    
 
     key = Option(
         doc='''
-        **Syntax:** **key=***<file_name>*
+        **Syntax:** **key=***<string>*
         **Description:** name of the file containing the cryptographic key to use''',
         require=True)
 
@@ -195,13 +195,13 @@ class cryptCommand(EventingCommand):
                     key = key_dict['key_salt'][0:16]
                     iv  = key_dict['key_salt'][-16::]
                 else:
-                    raise RuntimeWarning('Key and/or IV do not have the correct length. Key must be 16, 24 or 32 bytes. IV must be 16 bytes.')
+                    raise ValueError('Key and/or IV do not have the correct length. Key must be 16, 24 or 32 bytes. IV must be 16 bytes.')
                 return key, iv
             except Exception as e:
                 raise RuntimeWarning('Failed to load AES key and/or IV: {0}.'.format(e))
 
         else:
-            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+            raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
 
 
@@ -276,7 +276,7 @@ class cryptCommand(EventingCommand):
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
         else:
-            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+            raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
     def aes_decrypt(self, fieldname, field, key, iv):
         # AES-CBC
@@ -307,7 +307,7 @@ class cryptCommand(EventingCommand):
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
         else:
-            raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+            raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
 
 
@@ -321,7 +321,7 @@ class cryptCommand(EventingCommand):
         try:
             service.confs['inputs']['crypto_settings://{0}'.format(self.key)]
         except:
-            raise RuntimeWarning('Specified key file "{0}" does not exist. Please check the spelling of your specified key name or your configured keys.'.format(self.key))
+            raise ValueError('Specified key file "{0}" does not exist. Please check the spelling of your specified key name or your configured keys.'.format(self.key))
 
         # Configuration agnostic imports
         try:
@@ -348,7 +348,7 @@ class cryptCommand(EventingCommand):
                 elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
                     _encrypt = self.aes_encrypt
                 else:
-                    raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+                    raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
                 # Load key and do sanity checks
                 key, iv = self.load_key(service)
@@ -357,7 +357,7 @@ class cryptCommand(EventingCommand):
                 for event in events:
                     for fieldname in self.fieldnames:
                         # Always skip _time
-                        if fieldname=='_time':
+                        if fieldname == '_time':
                             continue
                         event[fieldname] = _encrypt(fieldname, event[fieldname], key, iv)
                     yield event
@@ -375,7 +375,7 @@ class cryptCommand(EventingCommand):
                 elif self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc', 'aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
                     _decrypt = self.aes_decrypt
                 else:
-                    raise RuntimeWarning('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
+                    raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
                 # Load key and do sanity checks
                 key, iv = self.load_key(service)
@@ -383,7 +383,7 @@ class cryptCommand(EventingCommand):
                 # Perform field decryption
                 for event in events:
                     for fieldname in self.fieldnames:
-                        if fieldname=='_time':
+                        if fieldname == '_time':
                             continue
                         event[fieldname] = _decrypt(fieldname, event[fieldname], key, iv)
                     yield event
