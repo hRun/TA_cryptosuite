@@ -21,45 +21,49 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 ## Usage
 
 _cipher_ command syntax: 
+
 *cipher mode=<d|e> algorithm=<rc4|rot13|rot47|xor> key=<key> \<field-list>*
 
-_mode_: Mandatory. Set to _e_ to cipher, set to _d_ to decipher the given field list using the provided key.
+&nbsp;&nbsp;&nbsp;_mode_: Mandatory. Set to _e_ to cipher, set to _d_ to decipher the given field list using the provided key.
 
-_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for ciphering/deciphering.
+&nbsp;&nbsp;&nbsp;_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for ciphering/deciphering.
 
-_key_: Mandatory. Specify the key to use. Requirements vary depending on the chosen algorithm.
+&nbsp;&nbsp;&nbsp;_key_: Mandatory. Specify the key to use. Requirements vary depending on the chosen algorithm.
 
 Cipher results will be output as hex strings (except ROT results where output is ascii). Deciphering (except ROT operations) expects input fields to be hex strings, results will be output in ascii. If the cipher operation fails on a single field or event, this field/event will be skipped and returned as is.
 
 
 _crypt_ command syntax: 
+
 *crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<key_name> \<field-list>*
 
-_mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
+&nbsp;&nbsp;&nbsp;_mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 
-_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
+&nbsp;&nbsp;&nbsp;_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
 
-_key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
+&nbsp;&nbsp;&nbsp;_key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
 
 Encryption results will be output base64 encoded. Decryption expects input fields to be base64 encoded, results will be output in ascii. For security purposes the whole search will fail if the crypto operation fails on a single field or event. See _Requirements & Configuration_ for key setup.
 
 
 _encode_ command syntax: 
+
 *encode mode=<to|from> encoding=<base32|base64|base85|binary|decimal|hex|octal> \<field-list>*
 
-_mode_: Mandatory. Set to _to_ for transforming to the specified encoding, set to _from_ to transform from the specified encoding.
+&nbsp;&nbsp;&nbsp;_mode_: Mandatory. Set to _to_ for transforming to the specified encoding, set to _from_ to transform from the specified encoding.
 
-_encoding_: Mandatory. Set to the encoding method to apply to the given field list.
+&nbsp;&nbsp;&nbsp;_encoding_: Mandatory. Set to the encoding method to apply to the given field list.
 
 If the encoding operation fails on a single field or event, this field/event will be skipped and returned as is.
 
 
 _hash_ command syntax: 
+
 *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s> [salt=\<salt_name>] \<field-list>*
 
-_algorithm_: Mandatory. Set to the hashing algorithm you would like to use. SHA3 and Blake2 are only available when using Python 3.
+&nbsp;&nbsp;&nbsp;_algorithm_: Mandatory. Set to the hashing algorithm you would like to use. SHA3 and Blake2 are only available when using Python 3.
 
-_saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
+&nbsp;&nbsp;&nbsp;_saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
 
 For security purposes the whole search will fail if the hash operation fails on a single field or event. See _Requirements & Configuration_ for salt setup.
 
