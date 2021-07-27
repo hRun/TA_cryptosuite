@@ -9,61 +9,57 @@ A Splunk® Add-On providing the custom search commands _cipher_, _crypt_, _encod
 * Manage access to encryption and decryption functionality on a per-user or per-role basis via two shipped roles
 * Manage usable encryption/decryption keys on a per-user or per-role basis via the app's configuration screen
 
-Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.1.1 and 8.0.2.1 on Windows and Linux (64-bit).
+Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.2.1 and 8.1.1 on Windows and Linux (64-bit).
 
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
-* Version: 2.2
+* Version: 2.2.1
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
 ## Usage
 
 _cipher_ command syntax: 
-
 *cipher mode=<d|e> algorithm=<rc4|rot13|rot47|xor> key=<key> \<field-list>*
 
-&nbsp;&nbsp;&nbsp;_mode_: Mandatory. Set to _e_ to cipher, set to _d_ to decipher the given field list using the provided key.
+_mode_: Mandatory. Set to _e_ to cipher, set to _d_ to decipher the given field list using the provided key.
 
-&nbsp;&nbsp;&nbsp;_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for ciphering/deciphering.
+_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for ciphering/deciphering.
 
-&nbsp;&nbsp;&nbsp;_key_: Mandatory. Specify the key to use. Requirements vary depending on the chosen algorithm.
+_key_: Mandatory. Specify the key to use. Requirements vary depending on the chosen algorithm.
 
 Cipher results will be output as hex strings (except ROT results where output is ascii). Deciphering (except ROT operations) expects input fields to be hex strings, results will be output in ascii. If the cipher operation fails on a single field or event, this field/event will be skipped and returned as is.
 
 
 _crypt_ command syntax: 
-
 *crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<key_name> \<field-list>*
 
-&nbsp;&nbsp;&nbsp;_mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
+_mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 
-&nbsp;&nbsp;&nbsp;_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
+_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
 
-&nbsp;&nbsp;&nbsp;_key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
+_key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
 
 Encryption results will be output base64 encoded. Decryption expects input fields to be base64 encoded, results will be output in ascii. For security purposes the whole search will fail if the crypto operation fails on a single field or event. See _Requirements & Configuration_ for key setup.
 
 
 _encode_ command syntax: 
-
 *encode mode=<to|from> encoding=<base32|base64|base85|binary|decimal|hex|octal> \<field-list>*
 
-&nbsp;&nbsp;&nbsp;_mode_: Mandatory. Set to _to_ for transforming to the specified encoding, set to _from_ to transform from the specified encoding.
+_mode_: Mandatory. Set to _to_ for transforming to the specified encoding, set to _from_ to transform from the specified encoding.
 
-&nbsp;&nbsp;&nbsp;_encoding_: Mandatory. Set to the encoding method to apply to the given field list.
+_encoding_: Mandatory. Set to the encoding method to apply to the given field list.
 
 If the encoding operation fails on a single field or event, this field/event will be skipped and returned as is.
 
 
 _hash_ command syntax: 
-
 *hash algorithm=<md5|sha1|sha224|sha256|sha384|sha512|sha3_224|sha3_256|sha3_384|sha3_512|blake2b|blake2s> [salt=\<salt_name>] \<field-list>*
 
-&nbsp;&nbsp;&nbsp;_algorithm_: Mandatory. Set to the hashing algorithm you would like to use. SHA3 and Blake2 are only available when using Python 3.
+_algorithm_: Mandatory. Set to the hashing algorithm you would like to use. SHA3 and Blake2 are only available when using Python 3.
 
-&nbsp;&nbsp;&nbsp;_saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
+_saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
 
 For security purposes the whole search will fail if the hash operation fails on a single field or event. See _Requirements & Configuration_ for salt setup.
 
@@ -214,6 +210,11 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 
 ## History
+
+### v2.2.1
+
+* Repackaged using Splunk Add-On Builder v4.0.0
+* Updated Splunk Python SDK to v1.6.16
 
 ### v2.2
 
