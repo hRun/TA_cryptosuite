@@ -62,7 +62,7 @@ class MultiByteCharSetProber(CharSetProber):
         for i in range(len(byte_str)):
             coding_state = self.coding_sm.next_state(byte_str[i])
             if coding_state == MachineState.ERROR:
-                self.logger.debug('%s %s prober hit error at byte %s',
+                self.logger.debug('%s %s prober encountered error at byte %s',
                                   self.charset_name, self.language, i)
                 self._state = ProbingState.NOT_ME
                 break

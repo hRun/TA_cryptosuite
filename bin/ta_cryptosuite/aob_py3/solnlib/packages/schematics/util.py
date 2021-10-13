@@ -11,12 +11,12 @@ if PY2:
     try:
         from thread import get_ident
     except ImportError:
-        from dummy_thread import get_ident
+        from placeholder_thread import get_ident
 else:
     try:
         from _thread import get_ident
     except ImportError:
-        from _dummy_thread import get_ident
+        from _placeholder_thread import get_ident
 
 __all__ = ['get_ident', 'setdefault', 'Constant', 'listify',
     'get_all_subclasses', 'ImportStringError', 'import_string']
@@ -79,7 +79,7 @@ class ImportStringError(ImportError):
 
     """Provides information about a failed :func:`import_string` attempt.
 
-    Code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    Code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/primary/LICENSE
     """
 
     #: String in dotted notation that failed to be imported.
@@ -130,7 +130,7 @@ def import_string(import_name, silent=False):
 
     If `silent` is True the return value will be `None` if the import fails.
 
-    Code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/master/LICENSE
+    Code taken from werzeug BSD license at https://github.com/pallets/werkzeug/blob/primary/LICENSE
 
     :param import_name: the dotted name for the object to import.
     :param silent: if set to `True` import errors are ignored and

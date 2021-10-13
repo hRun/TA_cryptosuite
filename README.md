@@ -262,7 +262,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 * Removed keyencryption parameter from crypt command and replaced by automatic detection
 * Removed randpadding parameter and support for non-random padding
-* Implemented basic sanity checks for private/public RSA key usage during encryption/decryption attempts
+* Implemented basic review checks for private/public RSA key usage during encryption/decryption attempts
 * Implemented PKCS#1 v2 (OAEP) support
 * Implemented possibility for AES-128/192/256-CBC/OFB field/event encryption & decryption
 * AES-CBC and AES-OFB are now the only parameter values and modes for AES encryption/decryption

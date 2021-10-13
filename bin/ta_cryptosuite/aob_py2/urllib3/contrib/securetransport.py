@@ -25,7 +25,7 @@ To use this module, simply import and inject it::
 Happy TLSing!
 
 This code is a bastardised version of the code found in Will Bond's oscrypto
-library. An enormous debt is owed to him for blazing this trail for us. For
+library. An enormous debt is owed to them for blazing this trail for us. For
 that reason, this code should be considered to be covered both by urllib3's
 license and by oscrypto's:
 
@@ -344,7 +344,7 @@ class WrappedSocket(object):
     def _raise_on_error(self):
         """
         A context manager that can be used to wrap calls that do I/O from
-        SecureTransport. If any of the I/O callbacks hit an exception, this
+        SecureTransport. If any of the I/O callbacks encountered an exception, this
         context manager will correctly propagate the exception after the fact.
         This avoids silently swallowing those exceptions.
 
@@ -353,7 +353,7 @@ class WrappedSocket(object):
         self._exception = None
 
         # We explicitly don't catch around this yield because in the unlikely
-        # event that an exception was hit in the block we don't want to swallow
+        # event that an exception was encountered in the block we don't want to swallow
         # it.
         yield
         if self._exception is not None:

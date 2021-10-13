@@ -84,7 +84,7 @@ try:
                          _MAXLINE,
                          _MAXHEADERS,
                          _is_legal_header_name,
-                         _is_illegal_header_value,
+                         _is_unacceptable_header_value,
                          _METHODS_EXPECTING_BODY
                         )
 except ImportError:

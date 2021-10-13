@@ -381,7 +381,7 @@ class SearchCommand(object):
 
     def error_exit(self, error, message=None):
         self.write_error(error.message if message is None else message)
-        self.logger.error('Abnormal exit: %s', error)
+        self.logger.error('Atypical exit: %s', error)
         exit(1)
 
     def finish(self):
@@ -719,7 +719,7 @@ class SearchCommand(object):
                         try:
                             option.value = value
                         except ValueError:
-                            self.write_error('Illegal value: {}={}'.format(name, value))
+                            self.write_error('Unacceptable value: {}={}'.format(name, value))
                             error_count += 1
                             continue
 

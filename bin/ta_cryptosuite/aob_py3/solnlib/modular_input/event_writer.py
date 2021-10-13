@@ -240,7 +240,7 @@ class HECEventWriter(EventWriter):
     def create_from_input(hec_input_name, splunkd_uri, session_key, **context):
         '''Given HEC input stanza name, splunkd URI and splunkd session key,
         create HECEventWriter object. HEC URI and token etc will be discovered
-        from HEC input stanza. When hitting HEC event limit, the underlying
+        from HEC input stanza. When encountering HEC event limit, the underlying
         code will increase the HEC event limit automatically by calling
         corresponding REST API against splunkd_uri by using session_key
 
@@ -262,7 +262,7 @@ class HECEventWriter(EventWriter):
     def create_from_token_with_session_key(
             splunkd_uri, session_key, hec_uri, hec_token, **context):
         '''Given Splunkd URI, Splunkd session key, HEC URI and HEC token,
-        create HECEventWriter object. When hitting HEC event limit, the event
+        create HECEventWriter object. When encountering HEC event limit, the event
         writer will increase the HEC event limit automatically by calling
         corresponding REST API against splunkd_uri by using session_key
 

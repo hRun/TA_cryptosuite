@@ -97,8 +97,8 @@ def fail_for_missing_callable(string, name):
     raise TemplateRuntimeError(msg)
 
 
-def _environment_sanity_check(environment):
-    """Perform a sanity check on the environment."""
+def _environment_review_check(environment):
+    """Perform a review check on the environment."""
     assert issubclass(environment.undefined, Undefined), 'undefined must ' \
         'be a subclass of undefined because filters depend on it.'
     assert environment.block_start_string != \
@@ -335,7 +335,7 @@ class Environment(object):
         self.enable_async = enable_async
         self.is_async = self.enable_async and have_async_gen
 
-        _environment_sanity_check(self)
+        _environment_review_check(self)
 
     def add_extension(self, extension):
         """Adds an extension after the environment was created.
@@ -396,7 +396,7 @@ class Environment(object):
         if extensions is not missing:
             rv.extensions.update(load_extensions(rv, extensions))
 
-        return _environment_sanity_check(rv)
+        return _environment_review_check(rv)
 
     lexer = property(get_lexer, doc="The lexer for this environment.")
 

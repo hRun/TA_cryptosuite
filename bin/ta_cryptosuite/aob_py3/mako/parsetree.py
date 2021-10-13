@@ -388,7 +388,7 @@ class IncludeTag(Tag):
             **kwargs
         )
         self.page_args = ast.PythonCode(
-            "__DUMMY(%s)" % attributes.get("args", ""), **self.exception_kwargs
+            "__PLACEHOLDER(%s)" % attributes.get("args", ""), **self.exception_kwargs
         )
 
     def declared_identifiers(self):
@@ -396,7 +396,7 @@ class IncludeTag(Tag):
 
     def undeclared_identifiers(self):
         identifiers = self.page_args.undeclared_identifiers.difference(
-            set(["__DUMMY"])
+            set(["__PLACEHOLDER"])
         ).difference(self.page_args.declared_identifiers)
         return identifiers.union(
             super(IncludeTag, self).undeclared_identifiers()

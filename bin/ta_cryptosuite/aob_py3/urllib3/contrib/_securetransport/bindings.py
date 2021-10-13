@@ -5,7 +5,7 @@ SecureTransport. These are essentially the C-level functions and constants, and
 they're pretty gross to work with.
 
 This code is a bastardised version of the code found in Will Bond's oscrypto
-library. An enormous debt is owed to him for blazing this trail for us. For
+library. An enormous debt is owed to them for blazing this trail for us. For
 that reason, this code should be considered to be covered both by urllib3's
 license and by oscrypto's:
 

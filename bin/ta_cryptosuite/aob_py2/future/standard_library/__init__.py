@@ -24,7 +24,7 @@ And then these normal Py3 imports work on both Py3 and Py2::
     import xmlrpc.client, xmlrpc.server
 
     import _thread
-    import _dummy_thread
+    import _placeholder_thread
     import _markupbase
 
     from itertools import filterfalse, zip_longest
@@ -125,7 +125,7 @@ RENAMES = {
            # 'Tkinter': 'tkinter',
            '_winreg': 'winreg',
            'thread': '_thread',
-           'dummy_thread': '_dummy_thread',
+           'placeholder_thread': '_placeholder_thread',
            # 'anydbm': 'dbm',   # causes infinite import loop
            # 'whichdb': 'dbm',  # causes infinite import loop
            # anydbm and whichdb are handled by fix_imports2
@@ -333,7 +333,7 @@ class hooks(object):
             remove_hooks()
         # scrub_future_sys_modules()
 
-# Sanity check for is_py2_stdlib_module(): We aren't replacing any
+# Review check for is_py2_stdlib_module(): We aren't replacing any
 # builtin modules names:
 if PY2:
     assert len(set(RENAMES.values()) & set(sys.builtin_module_names)) == 0
@@ -801,7 +801,7 @@ TOP_LEVEL_MODULES = ['builtins',
                      'tkinter',
                      'winreg',
                      'xmlrpc',
-                     '_dummy_thread',
+                     '_placeholder_thread',
                      '_markupbase',
                      '_thread',
                     ]

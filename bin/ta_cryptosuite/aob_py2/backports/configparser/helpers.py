@@ -37,7 +37,7 @@ except ImportError:
     try:
         from _thread import get_ident
     except ImportError:
-        from _dummy_thread import get_ident
+        from _placeholder_thread import get_ident
 
 
 __all__ = ['UserDict', 'OrderedDict', 'open']

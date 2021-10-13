@@ -416,7 +416,7 @@ class RealDecoder(AbstractSimpleDecoder):
             b = fo >> 4 & 0x03  # base bits
 
             if b > 2:
-                raise error.PyAsn1Error('Illegal Real base')
+                raise error.PyAsn1Error('Unacceptable Real base')
 
             if b == 1:  # encbase = 8
                 e *= 3

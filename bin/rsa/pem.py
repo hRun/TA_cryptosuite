@@ -87,7 +87,7 @@ def load_pem(contents, pem_marker):
 
         pem_lines.append(line)
 
-    # Do some sanity checks
+    # Do some review checks
     if not pem_lines:
         raise ValueError('No PEM start marker "%s" found' % pem_start)
 

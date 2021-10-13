@@ -59,7 +59,7 @@ class hashCommand(EventingCommand):
 
 
 
-    ## Helper to check if a user is privileged to do what he is trying to do
+    ## Helper to check if a user is privileged to do what they are trying to do
     #
     def validate_user(self, service):
         auth_roles = []

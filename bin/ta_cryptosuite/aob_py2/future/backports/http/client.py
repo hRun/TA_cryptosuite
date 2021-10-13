@@ -246,13 +246,13 @@ class HTTPMessage(email_message.Message):
         name = name.lower() + ':'
         n = len(name)
         lst = []
-        hit = 0
+        tap = 0
         for line in self.keys():
             if line[:n].lower() == name:
-                hit = 1
+                tap = 1
             elif not line[:1].isspace():
-                hit = 0
-            if hit:
+                tap = 0
+            if tap:
                 lst.append(line)
         return lst
 

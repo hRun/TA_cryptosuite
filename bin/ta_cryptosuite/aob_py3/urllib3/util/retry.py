@@ -95,18 +95,18 @@ class Retry(object):
 
         Set to ``0`` to fail on the first retry of this type.
 
-    :param iterable method_whitelist:
+    :param iterable method_allowlist:
         Set of uppercased HTTP method verbs that we should retry on.
 
         By default, we only retry on methods which are considered to be
         idempotent (multiple requests with the same parameters end with the
-        same state). See :attr:`Retry.DEFAULT_METHOD_WHITELIST`.
+        same state). See :attr:`Retry.DEFAULT_METHOD_ALLOWLIST`.
 
         Set to a ``False`` value to retry on any verb.
 
     :param iterable status_forcelist:
         A set of integer HTTP status codes that we should force a retry on.
-        A retry is initiated if the request method is in ``method_whitelist``
+        A retry is initiated if the request method is in ``method_allowlist``
         and the response status code is in ``status_forcelist``.
 
         By default, this is disabled with ``None``.
@@ -147,13 +147,13 @@ class Retry(object):
         request.
     """
 
-    DEFAULT_METHOD_WHITELIST = frozenset(
+    DEFAULT_METHOD_ALLOWLIST = frozenset(
         ["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE"]
     )
 
     RETRY_AFTER_STATUS_CODES = frozenset([413, 429, 503])
 
-    DEFAULT_REDIRECT_HEADERS_BLACKLIST = frozenset(["Authorization"])
+    DEFAULT_REDIRECT_HEADERS_DENYLIST = frozenset(["Authorization"])
 
     #: Maximum backoff time.
     BACKOFF_MAX = 120
@@ -165,14 +165,14 @@ class Retry(object):
         read=None,
         redirect=None,
         status=None,
-        method_whitelist=DEFAULT_METHOD_WHITELIST,
+        method_allowlist=DEFAULT_METHOD_ALLOWLIST,
         status_forcelist=None,
         backoff_factor=0,
         raise_on_redirect=True,
         raise_on_status=True,
         history=None,
         respect_retry_after_header=True,
-        remove_headers_on_redirect=DEFAULT_REDIRECT_HEADERS_BLACKLIST,
+        remove_headers_on_redirect=DEFAULT_REDIRECT_HEADERS_DENYLIST,
     ):
 
         self.total = total
@@ -186,7 +186,7 @@ class Retry(object):
 
         self.redirect = redirect
         self.status_forcelist = status_forcelist or set()
-        self.method_whitelist = method_whitelist
+        self.method_allowlist = method_allowlist
         self.backoff_factor = backoff_factor
         self.raise_on_redirect = raise_on_redirect
         self.raise_on_status = raise_on_status
@@ -203,7 +203,7 @@ class Retry(object):
             read=self.read,
             redirect=self.redirect,
             status=self.status,
-            method_whitelist=self.method_whitelist,
+            method_allowlist=self.method_allowlist,
             status_forcelist=self.status_forcelist,
             backoff_factor=self.backoff_factor,
             raise_on_redirect=self.raise_on_redirect,
@@ -316,15 +316,15 @@ class Retry(object):
 
     def _is_method_retryable(self, method):
         """ Checks if a given HTTP method should be retried upon, depending if
-        it is included on the method whitelist.
+        it is included on the method allowlist.
         """
-        if self.method_whitelist and method.upper() not in self.method_whitelist:
+        if self.method_allowlist and method.upper() not in self.method_allowlist:
             return False
 
         return True
 
     def is_retry(self, method, status_code, has_retry_after=False):
-        """ Is this method/status code retryable? (Based on whitelists and control
+        """ Is this method/status code retryable? (Based on allowlists and control
         variables such as the number of total retries to allow, whether to
         respect the Retry-After header, whether this header is present, and
         whether the returned status code is on the list of status codes to
@@ -411,7 +411,7 @@ class Retry(object):
 
         else:
             # Incrementing because of a server error like a 500 in
-            # status_forcelist and a the given method is in the whitelist
+            # status_forcelist and a the given method is in the allowlist
             cause = ResponseError.GENERIC_ERROR
             if response and response.status:
                 if status_count is not None:

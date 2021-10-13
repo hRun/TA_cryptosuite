@@ -45,11 +45,11 @@ class Context(object):
 
     def _set_with_template(self, t):
         self._with_template = t
-        illegal_names = t.reserved_names.intersection(self._data)
-        if illegal_names:
+        unacceptable_names = t.reserved_names.intersection(self._data)
+        if unacceptable_names:
             raise exceptions.NameConflictError(
                 "Reserved words passed to render(): %s"
-                % ", ".join(illegal_names)
+                % ", ".join(unacceptable_names)
             )
 
     @property

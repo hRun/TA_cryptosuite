@@ -19,7 +19,7 @@ from .compat import cookielib, urlparse, urlunparse, Morsel, MutableMapping
 try:
     import threading
 except ImportError:
-    import dummy_threading as threading
+    import placeholder_threading as threading
 
 
 class MockRequest(object):

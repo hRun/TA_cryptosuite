@@ -1087,13 +1087,13 @@ class _Identifiers(object):
         if node is not None:
             node.accept_visitor(self)
 
-        illegal_names = self.compiler.reserved_names.intersection(
+        unacceptable_names = self.compiler.reserved_names.intersection(
             self.locally_declared
         )
-        if illegal_names:
+        if unacceptable_names:
             raise exceptions.NameConflictError(
                 "Reserved words declared in template: %s"
-                % ", ".join(illegal_names)
+                % ", ".join(unacceptable_names)
             )
 
     def branch(self, node, **kwargs):

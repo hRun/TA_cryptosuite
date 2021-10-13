@@ -119,7 +119,7 @@ def check_bidi(label, check_ltr=False):
                 valid_ending = False
 
     if not valid_ending:
-        raise IDNABidiError('Label ends with illegal codepoint directionality')
+        raise IDNABidiError('Label ends with unacceptable codepoint directionality')
 
     return True
 
@@ -127,7 +127,7 @@ def check_bidi(label, check_ltr=False):
 def check_initial_combiner(label):
 
     if unicodedata.category(label[0])[0] == 'M':
-        raise IDNAError('Label begins with an illegal combining character')
+        raise IDNAError('Label begins with an unacceptable combining character')
     return True
 
 

@@ -54,7 +54,7 @@ def get_appname_from_path(absolute_path):
     absolute_path = op.normpath(absolute_path)
     parts = absolute_path.split(os.path.sep)
     parts.reverse()
-    for key in ("apps", "slave-apps", "master-apps"):
+    for key in ("apps", "peer-apps", "primary-apps"):
         try:
             idx = parts.index(key)
         except ValueError:

@@ -81,7 +81,7 @@ class cryptCommand(EventingCommand):
     module = False # Flag for pycryptodomex usage
 
 
-    ## Helper to check if a user is privileged to do what he is trying to do
+    ## Helper to check if a user is privileged to do what they are trying to do
     #
     def validate_user(self, service):
         user, roles, auth_users, auth_roles = self._metadata.searchinfo.username, [], [], []
@@ -115,7 +115,7 @@ class cryptCommand(EventingCommand):
 
 
 
-    ## Helper to load keys and run basic sanity checks
+    ## Helper to load keys and run basic review checks
     #
     def load_key(self, service):
         stored_key = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.key))
@@ -350,7 +350,7 @@ class cryptCommand(EventingCommand):
                 else:
                     raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
-                # Load key and do sanity checks
+                # Load key and do review checks
                 key, iv = self.load_key(service)
 
                 # Perform field encryption
@@ -377,7 +377,7 @@ class cryptCommand(EventingCommand):
                 else:
                     raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
-                # Load key and do sanity checks
+                # Load key and do review checks
                 key, iv = self.load_key(service)
 
                 # Perform field decryption

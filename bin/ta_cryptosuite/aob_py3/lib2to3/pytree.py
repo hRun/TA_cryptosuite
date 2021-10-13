@@ -642,7 +642,7 @@ class WildcardPattern(BasePattern):
         assert 0 <= min <= max <= HUGE, (min, max)
         if content is not None:
             content = tuple(map(tuple, content))  # Protect against alterations
-            # Check sanity of alternatives
+            # Check review of alternatives
             assert len(content), repr(content)  # Can't have zero alternatives
             for alt in content:
                 assert len(alt), repr(alt) # Can have empty alternatives
@@ -707,7 +707,7 @@ class WildcardPattern(BasePattern):
         elif self.name == "bare_name":
             yield self._bare_name_matches(nodes)
         else:
-            # The reason for this is that hitting the recursion limit usually
+            # The reason for this is that encountering the recursion limit usually
             # results in some ugly messages about how RuntimeErrors are being
             # ignored. We only have to do this on CPython, though, because other
             # implementations don't have this nasty bug in the first place.
@@ -721,7 +721,7 @@ class WildcardPattern(BasePattern):
                     yield count, r
             except RuntimeError:
                 # We fall back to the iterative pattern matching scheme if the recursive
-                # scheme hits the recursion limit.
+                # scheme encounters the recursion limit.
                 for count, r in self._iterative_matches(nodes):
                     if self.name:
                         r[self.name] = nodes[:count]
