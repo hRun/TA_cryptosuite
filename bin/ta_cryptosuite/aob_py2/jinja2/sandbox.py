@@ -104,7 +104,7 @@ _mutable_spec = (
 
 
 class _MagicFormatMapping(Mapping):
-    """This class implements a dummy wrapper to fix a bug in the Python
+    """This class implements a placeholder wrapper to fix a bug in the Python
     standard library for string formatting.
 
     See https://bugs.python.org/issue13598 for information about why

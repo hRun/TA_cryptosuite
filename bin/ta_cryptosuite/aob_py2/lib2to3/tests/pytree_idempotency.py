@@ -30,7 +30,7 @@ def main():
     if not diff(fn, tree):
         print "No diffs."
     if not sys.argv[1:]:
-        return # Pass a dummy argument to run the complete test suite below
+        return # Pass a placeholder argument to run the complete test suite below
 
     problems = []
 

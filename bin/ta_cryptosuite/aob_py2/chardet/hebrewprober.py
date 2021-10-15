@@ -87,7 +87,7 @@ from .enums import ProbingState
 #    some unconverted characters showing as question marks. This problem might
 #    be corrected using another model prober for x-mac-hebrew. Due to the fact
 #    that x-mac-hebrew texts are so rare, writing another model prober isn't
-#    worth the effort and performance hit.
+#    worth the effort and performance loss.
 #
 #### The Prober ####
 #

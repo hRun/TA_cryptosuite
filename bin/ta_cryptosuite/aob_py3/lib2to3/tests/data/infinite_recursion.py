@@ -294,7 +294,7 @@ class stack_st(Structure):
 STACK = stack_st
 crypto_ex_data_st._fields_ = [
     ('sk', POINTER(STACK)),
-    ('dummy', c_int),
+    ('placeholder', c_int),
 ]
 assert sizeof(crypto_ex_data_st) == 8, sizeof(crypto_ex_data_st)
 assert alignment(crypto_ex_data_st) == 4, alignment(crypto_ex_data_st)
@@ -459,7 +459,7 @@ CRYPTO_dynlock._fields_ = [
 ]
 assert sizeof(CRYPTO_dynlock) == 8, sizeof(CRYPTO_dynlock)
 assert alignment(CRYPTO_dynlock) == 4, alignment(CRYPTO_dynlock)
-BIO_dummy = bio_st
+BIO_placeholder = bio_st
 CRYPTO_EX_new = CFUNCTYPE(c_int, c_void_p, c_void_p, POINTER(CRYPTO_EX_DATA), c_int, c_long, c_void_p)
 CRYPTO_EX_free = CFUNCTYPE(None, c_void_p, c_void_p, POINTER(CRYPTO_EX_DATA), c_int, c_long, c_void_p)
 CRYPTO_EX_dup = CFUNCTYPE(c_int, POINTER(CRYPTO_EX_DATA), POINTER(CRYPTO_EX_DATA), c_void_p, c_int, c_long, c_void_p)
@@ -1226,8 +1226,8 @@ ssl_session_st._fields_ = [
     ('ssl_version', c_int),
     ('key_arg_length', c_uint),
     ('key_arg', c_ubyte * 8),
-    ('master_key_length', c_int),
-    ('master_key', c_ubyte * 48),
+    ('primary_key_length', c_int),
+    ('primary_key', c_ubyte * 48),
     ('session_id_length', c_uint),
     ('session_id', c_ubyte * 32),
     ('sid_ctx_length', c_uint),
@@ -1275,8 +1275,8 @@ N10ssl_ctx_st4DOLLAR_18E._fields_ = [
     ('sess_miss', c_int),
     ('sess_timeout', c_int),
     ('sess_cache_full', c_int),
-    ('sess_hit', c_int),
-    ('sess_cb_hit', c_int),
+    ('sess_tap', c_int),
+    ('sess_cb_tap', c_int),
 ]
 assert sizeof(N10ssl_ctx_st4DOLLAR_18E) == 44, sizeof(N10ssl_ctx_st4DOLLAR_18E)
 assert alignment(N10ssl_ctx_st4DOLLAR_18E) == 4, alignment(N10ssl_ctx_st4DOLLAR_18E)
@@ -1363,7 +1363,7 @@ ssl_st._fields_ = [
     ('read_ahead', c_int),
     ('msg_callback', CFUNCTYPE(None, c_int, c_int, c_int, c_void_p, c_ulong, POINTER(SSL), c_void_p)),
     ('msg_callback_arg', c_void_p),
-    ('hit', c_int),
+    ('tap', c_int),
     ('purpose', c_int),
     ('trust', c_int),
     ('cipher_list', POINTER(STACK)),
@@ -2579,7 +2579,7 @@ __all__ = ['ENGINE', 'pkcs7_enc_content_st', '__int16_t',
            'uint64_t', 'ssl_comp_st', 'X509_OBJECT', 'pthread_cond_t',
            'DH', '__darwin_wctype_t', 'PKCS7_ENVELOPE', 'ASN1_TLC_st',
            'sig_atomic_t', 'BIO', 'nlink_t', 'BUF_MEM', 'SSL3_RECORD',
-           'bio_method_st', 'timeval', 'UI_string_types', 'BIO_dummy',
+           'bio_method_st', 'timeval', 'UI_string_types', 'BIO_placeholder',
            'ssl_ctx_st', 'NETSCAPE_CERT_SEQUENCE',
            'BIT_STRING_BITNAME_st', '__darwin_pthread_attr_t',
            'int8_t', '__darwin_wint_t', 'OBJ_NAME',

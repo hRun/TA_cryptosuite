@@ -16,7 +16,7 @@ from mako.template import Template
 try:
     import threading
 except:
-    import dummy_threading as threading
+    import placeholder_threading as threading
 
 
 class TemplateCollection(object):

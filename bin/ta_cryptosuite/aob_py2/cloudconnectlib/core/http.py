@@ -95,7 +95,7 @@ def _make_prepare_url_func():
 
     def prepare_url(url, params=None):
         """Prepare the given HTTP URL with ability provided in requests lib.
-        For some illegal characters in URL or parameters like space(' ') will
+        For some unacceptable characters in URL or parameters like space(' ') will
         be escaped to make sure we can request the correct URL."""
         pr.prepare_url(url, params=params)
         return pr.url

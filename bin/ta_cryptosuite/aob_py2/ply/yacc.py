@@ -1551,11 +1551,11 @@ class Grammar(object):
     def add_production(self, prodname, syms, func=None, file='', line=0):
 
         if prodname in self.Terminals:
-            raise GrammarError('%s:%d: Illegal rule name %r. Already defined as a token' % (file, line, prodname))
+            raise GrammarError('%s:%d: Unacceptable rule name %r. Already defined as a token' % (file, line, prodname))
         if prodname == 'error':
-            raise GrammarError('%s:%d: Illegal rule name %r. error is a reserved word' % (file, line, prodname))
+            raise GrammarError('%s:%d: Unacceptable rule name %r. error is a reserved word' % (file, line, prodname))
         if not _is_identifier.match(prodname):
-            raise GrammarError('%s:%d: Illegal rule name %r' % (file, line, prodname))
+            raise GrammarError('%s:%d: Unacceptable rule name %r' % (file, line, prodname))
 
         # Look for literal tokens
         for n, s in enumerate(syms):
@@ -1572,7 +1572,7 @@ class Grammar(object):
                 except SyntaxError:
                     pass
             if not _is_identifier.match(s) and s != '%prec':
-                raise GrammarError('%s:%d: Illegal name %r in rule %r' % (file, line, s, prodname))
+                raise GrammarError('%s:%d: Unacceptable name %r in rule %r' % (file, line, s, prodname))
 
         # Determine the precedence level
         if '%prec' in syms:
@@ -3080,7 +3080,7 @@ class ParserReflect(object):
     def validate_tokens(self):
         # Validate the tokens.
         if 'error' in self.tokens:
-            self.log.error("Illegal token name 'error'. Is a reserved word")
+            self.log.error("Unacceptable token name 'error'. Is a reserved word")
             self.error = True
             return
 

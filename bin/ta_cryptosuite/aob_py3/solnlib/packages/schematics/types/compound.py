@@ -202,7 +202,7 @@ class ListType(CompoundType):
     def _mock(self, context=None):
         random_length = get_value_in(self.min_size, self.max_size)
 
-        return [self.field._mock(context) for dummy in range(random_length)]
+        return [self.field._mock(context) for placeholder in range(random_length)]
 
     def _coerce(self, value):
         if isinstance(value, list):

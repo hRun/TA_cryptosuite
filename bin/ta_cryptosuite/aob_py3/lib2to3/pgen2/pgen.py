@@ -114,7 +114,7 @@ class ParserGenerator(object):
 
     def calcfirst(self, name):
         dfa = self.dfas[name]
-        self.first[name] = None # dummy to detect left recursion
+        self.first[name] = None # placeholder to detect left recursion
         state = dfa[0]
         totalset = {}
         overlapcheck = {}

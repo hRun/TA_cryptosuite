@@ -564,7 +564,7 @@ UNRESERVED_SET = frozenset(
 
 def unquote_unreserved(uri):
     """Un-escape any percent-escape sequences in a URI that are unreserved
-    characters. This leaves all reserved, illegal and non-ASCII bytes encoded.
+    characters. This leaves all reserved, unacceptable and non-ASCII bytes encoded.
 
     :rtype: str
     """
@@ -598,7 +598,7 @@ def requote_uri(uri):
     safe_without_percent = "!#$&'()*+,/:;=?@[]~"
     try:
         # Unquote only the unreserved characters
-        # Then quote only illegal characters (do not quote reserved,
+        # Then quote only unacceptable characters (do not quote reserved,
         # unreserved, or '%')
         return quote(unquote_unreserved(uri), safe=safe_with_percent)
     except InvalidURL:

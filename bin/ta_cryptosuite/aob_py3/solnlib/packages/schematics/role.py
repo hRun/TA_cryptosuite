@@ -78,9 +78,9 @@ class Role(collections.Set):
         return False
 
     @staticmethod
-    def whitelist(name, value, seq):
+    def allowlist(name, value, seq):
         """
-        Implements the behavior of a whitelist by requesting a field be skipped
+        Implements the behavior of a allowlist by requesting a field be skipped
         whenever its name is not in the list of fields.
 
         :param name:
@@ -96,9 +96,9 @@ class Role(collections.Set):
         return True
 
     @staticmethod
-    def blacklist(name, value, seq):
+    def denylist(name, value, seq):
         """
-        Implements the behavior of a blacklist by requesting a field be skipped
+        Implements the behavior of a denylist by requesting a field be skipped
         whenever its name is found in the list of fields.
 
         :param name:

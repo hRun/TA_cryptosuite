@@ -20,7 +20,7 @@ from jinja2._compat import string_types, iteritems
 
 
 def split_template_path(template):
-    """Split a path into segments and perform a sanity check.  If it detects
+    """Split a path into segments and perform a review check.  If it detects
     '..' in the path it will raise a `TemplateNotFound` error.
     """
     pieces = []

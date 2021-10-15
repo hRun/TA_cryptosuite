@@ -370,7 +370,7 @@ class CodeGenerator(NodeVisitor):
 
     def blockvisit(self, nodes, frame):
         """Visit a list of nodes as block in a frame.  If the current frame
-        is no buffer a dummy ``if 0: yield None`` is written automatically.
+        is no buffer a placeholder ``if 0: yield None`` is written automatically.
         """
         try:
             self.writeline('pass')

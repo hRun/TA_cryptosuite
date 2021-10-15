@@ -28,7 +28,7 @@ from .packages import six
 from .packages.six.moves import queue
 from .connection import (
     port_by_scheme,
-    DummyConnection,
+    PlaceholderConnection,
     HTTPConnection,
     HTTPSConnection,
     VerifiedHTTPSConnection,
@@ -726,7 +726,7 @@ class HTTPConnectionPool(ConnectionPool, RequestMethods):
 
         finally:
             if not clean_exit:
-                # We hit some kind of exception, handled or otherwise. We need
+                # We encountered some kind of exception, handled or otherwise. We need
                 # to throw the connection away unless explicitly told not to.
                 # Close the connection, set the variable to None, and make sure
                 # we put the None back in the pool to avoid leaking it.
@@ -959,7 +959,7 @@ class HTTPSConnectionPool(HTTPConnectionPool):
             self.port or "443",
         )
 
-        if not self.ConnectionCls or self.ConnectionCls is DummyConnection:
+        if not self.ConnectionCls or self.ConnectionCls is PlaceholderConnection:
             raise SSLError(
                 "Can't connect to HTTPS URL because the SSL module is not available."
             )

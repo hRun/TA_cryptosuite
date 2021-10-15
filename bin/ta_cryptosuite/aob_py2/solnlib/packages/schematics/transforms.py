@@ -304,29 +304,29 @@ def export_loop(schema, instance_or_dict, field_converter=None, role=None, raise
 def wholelist(*field_list):
     """
     Returns a function that evicts nothing. Exists mainly to be an explicit
-    allowance of all fields instead of a using an empty blacklist.
+    allowance of all fields instead of a using an empty denylist.
     """
     return Role(Role.wholelist, field_list)
 
 
-def whitelist(*field_list):
+def allowlist(*field_list):
     """
-    Returns a function that operates as a whitelist for the provided list of
+    Returns a function that operates as a allowlist for the provided list of
     fields.
 
-    A whitelist is a list of fields explicitly named that are allowed.
+    A allowlist is a list of fields explicitly named that are allowed.
     """
-    return Role(Role.whitelist, field_list)
+    return Role(Role.allowlist, field_list)
 
 
-def blacklist(*field_list):
+def denylist(*field_list):
     """
-    Returns a function that operates as a blacklist for the provided list of
+    Returns a function that operates as a denylist for the provided list of
     fields.
 
-    A blacklist is a list of fields explicitly named that are not allowed.
+    A denylist is a list of fields explicitly named that are not allowed.
     """
-    return Role(Role.blacklist, field_list)
+    return Role(Role.denylist, field_list)
 
 
 ###

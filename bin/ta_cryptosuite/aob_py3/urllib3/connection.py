@@ -59,7 +59,7 @@ port_by_scheme = {"http": 80, "https": 443}
 RECENT_DATE = datetime.date(2019, 1, 1)
 
 
-class DummyConnection(object):
+class PlaceholderConnection(object):
     """Used to detect a failed ConnectionCls import."""
 
     pass
@@ -445,4 +445,4 @@ if ssl:
     UnverifiedHTTPSConnection = HTTPSConnection
     HTTPSConnection = VerifiedHTTPSConnection
 else:
-    HTTPSConnection = DummyConnection
+    HTTPSConnection = PlaceholderConnection

@@ -94,7 +94,7 @@ def _parsedate_tz(data):
         if i > 0:
             data[3:] = [s[:i], s[i:]]
         else:
-            data.append('') # Dummy tz
+            data.append('') # Placeholder tz
     if len(data) < 5:
         return None
     data = data[:5]

@@ -294,7 +294,7 @@ class Descendants(JSONPath):
         # <left> .. <right> ==> <left> . (<right> | *..<right> | [*]..<right>)
         #
         # With with a wonky caveat that since Slice() has funky coercions
-        # we cannot just delegate to that equivalence or we'll hit an 
+        # we cannot just delegate to that equivalence or we'll encounter an 
         # infinite loop. So right here we implement the coercion-free version.
 
         # Get all left matches into a list

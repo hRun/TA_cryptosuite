@@ -50,7 +50,7 @@ def with_metaclass(meta, *bases):
 
     Function copied from `six <https://bitbucket.org/gutworth/six>`_ package.
     """
-    # This requires a bit of explanation: the basic idea is to make a dummy
+    # This requires a bit of explanation: the basic idea is to make a placeholder
     # metaclass for one level of class instantiation that replaces itself with
     # the actual metaclass.
     class metaclass(meta):

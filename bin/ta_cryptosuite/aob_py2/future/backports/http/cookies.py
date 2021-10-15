@@ -31,7 +31,7 @@
 #  information on cookies.
 #
 #  The original idea to treat Cookies as a dictionary came from
-#  Dave Mitchell (davem@magnet.com) in 1995, when he released the
+#  Dave Mitchell (davem@magnet.com) in 1995, when they released the
 #  first version of nscookie.py.
 #
 ####
@@ -369,7 +369,7 @@ class Morsel(dict):
         if key.lower() in self._reserved:
             raise CookieError("Attempt to set a reserved key: %s" % key)
         if any(c not in LegalChars for c in key):
-            raise CookieError("Illegal key value: %s" % key)
+            raise CookieError("Unacceptable key value: %s" % key)
 
         # It's a good key, so save it.
         self.key = key

@@ -19,7 +19,7 @@ import sys as _sys
 try:
     from thread import allocate_lock as Lock
 except ImportError:
-    from ._dummy_thread32 import allocate_lock as Lock
+    from ._placeholder_thread32 import allocate_lock as Lock
 
 ################################################################################
 ### OrderedDict
@@ -332,7 +332,7 @@ def cmp_to_key(mycmp):
         __hash__ = None
     return K
 
-_CacheInfo = namedtuple("CacheInfo", "hits misses maxsize currsize")
+_CacheInfo = namedtuple("CacheInfo", "taps misses maxsize currsize")
 
 def lru_cache(maxsize=100):
     """Least-recently-used cache decorator.
@@ -342,7 +342,7 @@ def lru_cache(maxsize=100):
 
     Arguments to the cached function must be hashable.
 
-    View the cache statistics named tuple (hits, misses, maxsize, currsize) with
+    View the cache statistics named tuple (taps, misses, maxsize, currsize) with
     f.cache_info().  Clear the cache and statistics with f.cache_clear().
     Access the underlying function with f.__wrapped__.
 
@@ -357,7 +357,7 @@ def lru_cache(maxsize=100):
     def decorating_function(user_function,
                 tuple=tuple, sorted=sorted, len=len, KeyError=KeyError):
 
-        hits, misses = [0], [0]
+        taps, misses = [0], [0]
         kwd_mark = (object(),)          # separates positional and keyword args
         lock = Lock()                   # needed because OrderedDict isn't threadsafe
 
@@ -371,7 +371,7 @@ def lru_cache(maxsize=100):
                     key += kwd_mark + tuple(sorted(kwds.items()))
                 try:
                     result = cache[key]
-                    hits[0] += 1
+                    taps[0] += 1
                     return result
                 except KeyError:
                     pass
@@ -393,7 +393,7 @@ def lru_cache(maxsize=100):
                     try:
                         result = cache[key]
                         cache_renew(key)    # record recent use of this key
-                        hits[0] += 1
+                        taps[0] += 1
                         return result
                     except KeyError:
                         pass
@@ -408,13 +408,13 @@ def lru_cache(maxsize=100):
         def cache_info():
             """Report cache statistics"""
             with lock:
-                return _CacheInfo(hits[0], misses[0], maxsize, len(cache))
+                return _CacheInfo(taps[0], misses[0], maxsize, len(cache))
 
         def cache_clear():
             """Clear the cache and cache statistics"""
             with lock:
                 cache.clear()
-                hits[0] = misses[0] = 0
+                taps[0] = misses[0] = 0
 
         wrapper.cache_info = cache_info
         wrapper.cache_clear = cache_clear
