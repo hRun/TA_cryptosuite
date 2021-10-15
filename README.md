@@ -1,4 +1,4 @@
-# TA-cryptosuite
+# TA_cryptosuite
 
 A Splunk® Add-On providing the custom search commands _cipher_, _crypt_, _encode_, and _hash_ for ciphering/deciphering, encrypting/decrypting, encoding/decoding and hashing fields and events at search time.
 
@@ -13,8 +13,9 @@ Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.2.1 and 8.1.
 
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
-* Authors: Harun Kuessner (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.2.2
+* Authors: Harun Kuessner
+* Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
+* Version: 2.2.3
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
@@ -210,6 +211,10 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 
 ## History
+
+### v2.2.3
+
+* Fullfilling requirements for Splunk Cloud vetting (shoutout and thank you to Windu Sayles for the support)
 
 ### v2.2.2
 
