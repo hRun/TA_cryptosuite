@@ -167,7 +167,7 @@ class cipherCommand(EventingCommand):
                 elif len(field.encode('utf-8')) < len(bytes.fromhex(key)):
                     key = bytes.fromhex(key)[0:len(field.encode('utf-8'))]
                 elif len(field.encode('utf-8')) > len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key) * (len(field.encode('utf-8'))%len(bytes.fromhex(key))) + bytes.fromhex(key)[0:len(field.encode('utf-8'))-len(bytes.fromhex(key) * (len(field.encode('utf-8'))%len(bytes.fromhex(key))))]
+                    key = (bytes.fromhex(key) * int((len(field.encode('utf-8'))+len(bytes.fromhex(key)))/len(bytes.fromhex(key))))[0:len(field.encode('utf-8'))]
                 return ''.join(['{:02x}'.format(m^k) for m, k in zip(field.encode('utf-8'), key)])
             else:
                 if len(binascii.unhexlify(key)) == 1:

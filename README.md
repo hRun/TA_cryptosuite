@@ -97,7 +97,7 @@ Hash a raw event containing some malware threat artifact using sha256.
 
 ## Installation
 
-1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _TA-cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
+1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _TA_cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
 2. Assign the roles 'can_encrypt' and/or 'can_decrypt' to users/roles who should be able to encrypt/decrypt data using the _crypt_ command. The _cipher_, _hash_ and _encode_ commands will automatically be available to all users.
 3. Read and follow the requirements & configuration section below.
 4. Optional: Set _python.version=python2_ or _python.version=python3_ in _commands.conf_, _inputs.conf_ and _restmap.conf_ if you would like to explicitly specify the Python version to use. Otherwise this will be determined by your instance's global settings.
