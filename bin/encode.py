@@ -18,9 +18,11 @@ from base62 import base62
 
 import base64
 import binascii
+import os
 import string
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
 

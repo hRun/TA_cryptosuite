@@ -76,7 +76,7 @@ Latin1_CharToClass = (
     ASV, ASV, ASV, ASV, ASV, ASO, ASO, ASO,   # F8 - FF
 )
 
-# 0 : illegal
+# 0 : unacceptable
 # 1 : very unlikely
 # 2 : normal
 # 3 : very likely

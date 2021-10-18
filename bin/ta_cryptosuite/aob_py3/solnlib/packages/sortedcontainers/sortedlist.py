@@ -40,13 +40,13 @@ if hexversion < 0x03000000:
     try:
         from thread import get_ident
     except ImportError:
-        from dummy_thread import get_ident
+        from placeholder_thread import get_ident
 else:
     from functools import reduce
     try:
         from _thread import get_ident
     except ImportError:
-        from _dummy_thread import get_ident
+        from _placeholder_thread import get_ident
 
 
 def recursive_repr(fillvalue='...'):

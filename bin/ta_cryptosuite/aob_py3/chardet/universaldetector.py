@@ -268,7 +268,7 @@ class UniversalDetector(object):
         # Log all prober confidences if none met MINIMUM_THRESHOLD
         if self.logger.getEffectiveLevel() == logging.DEBUG:
             if self.result['encoding'] is None:
-                self.logger.debug('no probers hit minimum threshold')
+                self.logger.debug('no probers encountered minimum threshold')
                 for group_prober in self._charset_probers:
                     if not group_prober:
                         continue

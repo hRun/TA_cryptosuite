@@ -11,7 +11,7 @@ Suggested usage is::
         except:
             import thread as _thread  # Python < 3
     except ImportError:
-        import _dummy_thread as _thread
+        import _placeholder_thread as _thread
 
 """
 # Exports only things specified by thread documentation;
@@ -19,7 +19,7 @@ Suggested usage is::
 __all__ = ['error', 'start_new_thread', 'exit', 'get_ident', 'allocate_lock',
            'interrupt_main', 'LockType']
 
-# A dummy value
+# A placeholder value
 TIMEOUT_MAX = 2**31
 
 # NOTE: this module can be imported early in the extension building process,
@@ -28,13 +28,13 @@ TIMEOUT_MAX = 2**31
 # are disabled, the import lock should not be an issue anyway (??).
 
 class error(Exception):
-    """Dummy implementation of _thread.error."""
+    """Placeholder implementation of _thread.error."""
 
     def __init__(self, *args):
         self.args = args
 
 def start_new_thread(function, args, kwargs={}):
-    """Dummy implementation of _thread.start_new_thread().
+    """Placeholder implementation of _thread.start_new_thread().
 
     Compatibility is maintained by making sure that ``args`` is a
     tuple and ``kwargs`` is a dictionary.  If an exception is raised
@@ -66,11 +66,11 @@ def start_new_thread(function, args, kwargs={}):
         raise KeyboardInterrupt
 
 def exit():
-    """Dummy implementation of _thread.exit()."""
+    """Placeholder implementation of _thread.exit()."""
     raise SystemExit
 
 def get_ident():
-    """Dummy implementation of _thread.get_ident().
+    """Placeholder implementation of _thread.get_ident().
 
     Since this module should only be used when _threadmodule is not
     available, it is safe to assume that the current process is the
@@ -79,17 +79,17 @@ def get_ident():
     return -1
 
 def allocate_lock():
-    """Dummy implementation of _thread.allocate_lock()."""
+    """Placeholder implementation of _thread.allocate_lock()."""
     return LockType()
 
 def stack_size(size=None):
-    """Dummy implementation of _thread.stack_size()."""
+    """Placeholder implementation of _thread.stack_size()."""
     if size is not None:
         raise error("setting thread stack size not supported")
     return 0
 
 class LockType(object):
-    """Class implementing dummy implementation of _thread.LockType.
+    """Class implementing placeholder implementation of _thread.LockType.
 
     Compatibility is maintained by maintaining self.locked_status
     which is a boolean that stores the state of the lock.  Pickling of
@@ -103,7 +103,7 @@ class LockType(object):
         self.locked_status = False
 
     def acquire(self, waitflag=None, timeout=-1):
-        """Dummy implementation of acquire().
+        """Placeholder implementation of acquire().
 
         For blocking calls, self.locked_status is automatically set to
         True and returned appropriately based on value of
@@ -132,7 +132,7 @@ class LockType(object):
         self.release()
 
     def release(self):
-        """Release the dummy lock."""
+        """Release the placeholder lock."""
         # XXX Perhaps shouldn't actually bother to test?  Could lead
         #     to problems for complex, threaded code.
         if not self.locked_status:

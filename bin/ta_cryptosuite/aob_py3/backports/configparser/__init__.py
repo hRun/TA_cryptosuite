@@ -350,7 +350,7 @@ _UNSET = object()
 
 
 class Interpolation(object):
-    """Dummy interpolation that passes the value through with no changes."""
+    """Placeholder interpolation that passes the value through with no changes."""
 
     def before_get(self, parser, section, option, value, defaults):
         return value
@@ -377,7 +377,7 @@ class BasicInterpolation(Interpolation):
 
     would resolve the "%(dir)s" to the value of dir.  All reference
     expansions are done late, on demand. If a user needs to use a bare % in
-    a configuration file, she can escape it by writing %%. Other % usage
+    a configuration file, they can escape it by writing %%. Other % usage
     is considered a user error and raises `InterpolationSyntaxError'."""
 
     _KEYCRE = re.compile(r"%\(([^)]+)\)s")

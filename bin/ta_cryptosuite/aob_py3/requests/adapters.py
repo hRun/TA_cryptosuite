@@ -489,7 +489,7 @@ class HTTPAdapter(BaseAdapter):
                         decode_content=False
                     )
                 except:
-                    # If we hit any problems here, clean up the connection.
+                    # If we encounter any problems here, clean up the connection.
                     # Then, reraise so that we can handle the actual exception.
                     low_conn.close()
                     raise

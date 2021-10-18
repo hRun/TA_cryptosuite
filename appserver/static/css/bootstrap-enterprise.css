@@ -454,7 +454,7 @@ textarea {
 
 /*  Printing */
 /*  ------------------------- */
-/*  Source: https://github.com/h5bp/html5-boilerplate/blob/master/css/main.css */
+/*  Source: https://github.com/h5bp/html5-boilerplate/blob/primary/css/main.css */
 
 @media print {
 
@@ -10273,17 +10273,17 @@ a.label:hover,
 }
 
 
-.add-content-master {
+.add-content-primary {
   width: 300px;
 }
 
 
-.add-content-master .header input {
+.add-content-primary .header input {
   border-radius: 15px;
 }
 
 
-.add-content-master .header .clear-filter {
+.add-content-primary .header .clear-filter {
   position: relative;
   left: -20px;
   background-color: #ccc;
@@ -10295,7 +10295,7 @@ a.label:hover,
 }
 
 
-.add-content-master .header .clear-filter i {
+.add-content-primary .header .clear-filter i {
   font-size: 8px;
   position: relative;
   top: -4px;
@@ -10303,7 +10303,7 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents {
+.add-content-primary .panel-contents {
   width: 100%;
   display: inline-block;
   overflow-y: auto;
@@ -10315,7 +10315,7 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents .accordion-group {
+.add-content-primary .panel-contents .accordion-group {
   border-left: none;
   border-right: none;
   border-top: none;
@@ -10324,7 +10324,7 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents .accordion-group .collapse:not(.in) {
+.add-content-primary .panel-contents .accordion-group .collapse:not(.in) {
   visibility: hidden;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -10334,12 +10334,12 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents .accordion-group .collapse.in {
+.add-content-primary .panel-contents .accordion-group .collapse.in {
   visibility: visible;
 }
 
 
-.add-content-master .panel-contents .accordion-group .accordion-toggle:before {
+.add-content-primary .panel-contents .accordion-group .accordion-toggle:before {
   content: "\2C5";
   font-family: "Splunk Icons";
   font-style: normal;
@@ -10350,25 +10350,25 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents .accordion-group .accordion-toggle.collapsed:before {
+.add-content-primary .panel-contents .accordion-group .accordion-toggle.collapsed:before {
   content: "\203A";
 }
 
 
-.add-content-master .panel-contents .accordion-group .accordion-inner {
+.add-content-primary .panel-contents .accordion-group .accordion-inner {
   border-top: none;
   padding: 0;
 }
 
 
-.add-content-master .panel-contents a:hover {
+.add-content-primary .panel-contents a:hover {
   text-decoration: none;
   color: #3863a0;
   background: rgba(0, 0, 0, 0.05);
 }
 
 
-.add-content-master .panel-contents a:focus {
+.add-content-primary .panel-contents a:focus {
   outline: 0;
   text-decoration: none;
   background: rgba(61, 171, 255, 0.12);
@@ -10377,18 +10377,18 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents ul {
+.add-content-primary .panel-contents ul {
   margin: 0;
   list-style: none;
 }
 
 
-.add-content-master .panel-contents ul li.panel-content {
+.add-content-primary .panel-contents ul li.panel-content {
   position: relative;
 }
 
 
-.add-content-master .panel-contents ul li.panel-content a {
+.add-content-primary .panel-contents ul li.panel-content a {
   position: relative;
   padding: 7px 10px 7px 31px;
   overflow: hidden;
@@ -10399,7 +10399,7 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents ul li.panel-content a .icons {
+.add-content-primary .panel-contents ul li.panel-content a .icons {
   position: relative;
   top: 2px;
   font-size: 14px;
@@ -10410,28 +10410,28 @@ a.label:hover,
 }
 
 
-.add-content-master .panel-contents ul li.panel-content a .icons i {
+.add-content-primary .panel-contents ul li.panel-content a .icons i {
   margin-right: 3px;
 }
 
 
-.add-content-master .panel-contents ul li.panel-content a .icons i.icon-plus {
+.add-content-primary .panel-contents ul li.panel-content a .icons i.icon-plus {
   font-size: 12px;
 }
 
 
-.add-content-master .panel-contents ul li.panel-content .accordion-group ul a {
+.add-content-primary .panel-contents ul li.panel-content .accordion-group ul a {
   padding-left: 48px;
 }
 
 
-.add-content-master .panel-contents ul li.parser-error a, .add-content-master .panel-contents ul li.clone-error a {
+.add-content-primary .panel-contents ul li.parser-error a, .add-content-primary .panel-contents ul li.clone-error a {
   color: #999;
   cursor: default;
 }
 
 
-.add-content-master .panel-contents ul li.selected a {
+.add-content-primary .panel-contents ul li.selected a {
   color: #fff;
   background: #3863a0;
 }

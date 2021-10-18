@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
-<view template="TA-cryptosuite:templates/base.html" type="html" isDashboard="False">
+<view template="TA_cryptosuite:templates/base.html" type="html" isDashboard="False">
     <label>Key and Salt Management</label>
 </view>

@@ -131,7 +131,7 @@ class CommandLineParser(object):
         #Exceptions:
 
         ``SyntaxError``: Argument list is incorrectly formed.
-        ``ValueError``: Unrecognized option/field name, or an illegal field value.
+        ``ValueError``: Unrecognized option/field name, or an unacceptable field value.
 
         """
         debug = environment.splunklib_logger.debug
@@ -283,7 +283,7 @@ class ConfigurationSettingsType(type):
                 type_names = ', '.join(imap(lambda t: t.__name__, specification.type))
             raise ValueError('Expected {} value, not {}={}'.format(type_names, name, repr(value)))
         if specification.constraint and not specification.constraint(value):
-            raise ValueError('Illegal value: {}={}'.format(name, repr(value)))
+            raise ValueError('Unacceptable value: {}={}'.format(name, repr(value)))
         return value
 
     specification = namedtuple(

@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------
 # pycparser: _build_tables.py
 #
-# A dummy for generating the lexing/parsing tables and and
+# A placeholder for generating the lexing/parsing tables and and
 # compiling them into .pyc for faster execution in optimized mode.
 # Also generates AST code from the configuration file.
 # Should be called from the pycparser directory.

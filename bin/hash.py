@@ -15,8 +15,10 @@ from __future__ import print_function
 
 import hashlib
 import json
+import os
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
 
@@ -59,7 +61,7 @@ class hashCommand(EventingCommand):
 
 
 
-    ## Helper to check if a user is privileged to do what he is trying to do
+    ## Helper to check if a user is privileged to do what they are trying to do
     #
     def validate_user(self, service):
         auth_roles = []

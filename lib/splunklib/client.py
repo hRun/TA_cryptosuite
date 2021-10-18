@@ -115,7 +115,7 @@ XNAME_CONTENT = XNAMEF_ATOM % "content"
 MATCH_ENTRY_CONTENT = "%s/%s/*" % (XNAME_ENTRY, XNAME_CONTENT)
 
 
-class IllegalOperationException(Exception):
+class UnacceptableOperationException(Exception):
     """Thrown when an operation is not possible on the Splunk instance that a
     :class:`Service` object is connected to."""
     pass
@@ -518,7 +518,7 @@ class Service(_BaseService):
         if self.splunk_version >= (5,):
             return ReadOnlyCollection(self, PATH_MODULAR_INPUTS, item=ModularInputKind)
         else:
-            raise IllegalOperationException("Modular inputs are not supported before Splunk version 5.")
+            raise UnacceptableOperationException("Modular inputs are not supported before Splunk version 5.")
 
     @property
     def storage_passwords(self):
@@ -828,15 +828,15 @@ class Entity(Endpoint):
 
     ``Entity`` provides the majority of functionality required by entities.
     Subclasses only implement the special cases for individual entities.
-    For example for deployment serverclasses, the subclass makes whitelists and
-    blacklists into Python lists.
+    For example for deployment serverclasses, the subclass makes allowlists and
+    denylists into Python lists.
 
     An ``Entity`` is addressed like a dictionary, with a few extensions,
     so the following all work::
 
         ent['email.action']
         ent['disabled']
-        ent['whitelist']
+        ent['allowlist']
 
     Many endpoints have values that share a prefix, such as
     ``email.to``, ``email.action``, and ``email.subject``. You can extract
@@ -853,7 +853,7 @@ class Entity(Endpoint):
 
         ent.email.action
         ent.disabled
-        ent.whitelist
+        ent.allowlist
 
     However, because some of the field names are not valid Python identifiers,
     the dictionary-like syntax is preferrable.
@@ -1150,7 +1150,7 @@ class Entity(Endpoint):
         # check for 'name' in kwargs and throw an error if it is
         # there.
         if 'name' in kwargs:
-            raise IllegalOperationException('Cannot update the name of an Entity via the REST API.')
+            raise UnacceptableOperationException('Cannot update the name of an Entity via the REST API.')
         self.post(**kwargs)
         return self
 
@@ -1748,8 +1748,8 @@ class Configurations(Collection):
             raise ValueError("Unexpected status code %s returned from creating a stanza" % response.status)
 
     def delete(self, key):
-        """Raises `IllegalOperationException`."""
-        raise IllegalOperationException("Cannot delete configuration files from the REST API.")
+        """Raises `UnacceptableOperationException`."""
+        raise UnacceptableOperationException("Cannot delete configuration files from the REST API.")
 
     def _entity_path(self, state):
         # Overridden to make all the ConfigurationFile objects
@@ -1928,7 +1928,7 @@ class Indexes(Collection):
         if self.service.splunk_version >= (5,):
             Collection.delete(self, name)
         else:
-            raise IllegalOperationException("Deleting indexes via the REST API is "
+            raise UnacceptableOperationException("Deleting indexes via the REST API is "
                                             "not supported before Splunk version 5.")
 
 
@@ -2172,7 +2172,7 @@ class Input(Entity):
             to_update = kwargs.copy()
 
             if 'restrictToHost' in kwargs:
-                raise IllegalOperationException("Cannot set restrictToHost on an existing input with the SDK.")
+                raise UnacceptableOperationException("Cannot set restrictToHost on an existing input with the SDK.")
             elif 'restrictToHost' in self._state.content and self.kind != 'udp':
                 to_update['restrictToHost'] = self._state.content['restrictToHost']
 
@@ -2252,7 +2252,7 @@ class Inputs(Collection):
         else:
             # Without a kind, we want to minimize the number of round trips to the server, so we
             # reimplement some of the behavior of __getitem__ in order to be able to stop searching
-            # on the first hit.
+            # on the first encounter.
             for kind in self.kinds:
                 try:
                     response = self.get(self.kindpath(kind) + "/" + key)
@@ -3120,7 +3120,7 @@ class ModularInputKind(Entity):
 
     def update(self, **kwargs):
         """Raises an error. Modular input kinds are read only."""
-        raise IllegalOperationException("Modular input kinds cannot be updated via the REST API.")
+        raise UnacceptableOperationException("Modular input kinds cannot be updated via the REST API.")
 
 
 class SavedSearch(Entity):
@@ -3165,13 +3165,13 @@ class SavedSearch(Entity):
         """Returns the collection of fired alerts (a fired alert group)
         corresponding to this saved search's alerts.
 
-        :raises IllegalOperationException: Raised when the search is not scheduled.
+        :raises UnacceptableOperationException: Raised when the search is not scheduled.
 
         :return: A collection of fired alerts.
         :rtype: :class:`AlertGroup`
         """
         if self['is_scheduled'] == '0':
-            raise IllegalOperationException('Unscheduled saved searches have no alerts.')
+            raise UnacceptableOperationException('Unscheduled saved searches have no alerts.')
         c = Collection(
             self.service,
             self.service._abspath(PATH_FIRED_ALERTS + self.name,

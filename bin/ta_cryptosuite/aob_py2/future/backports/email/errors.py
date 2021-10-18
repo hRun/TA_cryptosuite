@@ -30,7 +30,7 @@ class MultipartConversionError(MessageError, TypeError):
 
 
 class CharsetError(MessageError):
-    """An illegal charset was given."""
+    """An unacceptable charset was given."""
 
 
 # These are parsing defects which the parser was able to work around.

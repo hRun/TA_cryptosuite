@@ -140,7 +140,7 @@ def make_splunkhome_path(parts):
 
     # Check that we haven't escaped from intended parent directories.
     if os.path.relpath(fullpath, basepath)[0:2] == '..':
-        raise ValueError('Illegal escape from parent directory "%s": %s' %
+        raise ValueError('Unacceptable escape from parent directory "%s": %s' %
                          (basepath, fullpath))
     return fullpath
 

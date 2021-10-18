@@ -409,7 +409,7 @@ class ConfManager(object):
         if self._confs is None or refresh:
             # Fix bug that can't pass `-` as app name.
             curr_app = self._rest_client.namespace.app
-            self._rest_client.namespace.app = "dummy"
+            self._rest_client.namespace.app = "placeholder"
             self._confs = self._rest_client.confs
             self._rest_client.namespace.app = curr_app
 

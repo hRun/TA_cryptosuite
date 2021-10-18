@@ -264,7 +264,7 @@ class RefactoringTool(object):
             elif fixer.order == "post":
                 post_order_fixers.append(fixer)
             else:
-                raise FixerError("Illegal fixer order: %r" % fixer.order)
+                raise FixerError("Unacceptable fixer order: %r" % fixer.order)
 
         key_func = operator.attrgetter("run_order")
         pre_order_fixers.sort(key=key_func)

@@ -259,7 +259,7 @@ _moved_attributes = [
     MovedModule("copyreg", "copy_reg"),
     MovedModule("dbm_gnu", "gdbm", "dbm.gnu"),
     MovedModule("dbm_ndbm", "dbm", "dbm.ndbm"),
-    MovedModule("_dummy_thread", "dummy_thread", "_dummy_thread" if sys.version_info < (3, 9) else "_thread"),
+    MovedModule("_placeholder_thread", "placeholder_thread", "_placeholder_thread" if sys.version_info < (3, 9) else "_thread"),
     MovedModule("http_cookiejar", "cookielib", "http.cookiejar"),
     MovedModule("http_cookies", "Cookie", "http.cookies"),
     MovedModule("html_entities", "htmlentitydefs", "html.entities"),
@@ -839,7 +839,7 @@ else:
 
 def with_metaclass(meta, *bases):
     """Create a base class with a metaclass."""
-    # This requires a bit of explanation: the basic idea is to make a dummy
+    # This requires a bit of explanation: the basic idea is to make a placeholder
     # metaclass for one level of class instantiation that replaces itself with
     # the actual metaclass.
     class metaclass(type):

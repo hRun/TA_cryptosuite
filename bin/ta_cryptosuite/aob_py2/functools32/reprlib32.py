@@ -7,7 +7,7 @@ from itertools import islice
 try:
     from thread import get_ident
 except ImportError:
-    from _dummy_thread32 import get_ident
+    from _placeholder_thread32 import get_ident
 
 def recursive_repr(fillvalue='...'):
     'Decorator to make a repr function return fillvalue for a recursive call'

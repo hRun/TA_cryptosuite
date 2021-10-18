@@ -46,12 +46,12 @@ if PY3:
     try:
         from _thread import get_ident
     except ImportError:
-        from _dummy_thread import get_ident
+        from _placeholder_thread import get_ident
 else:
     try:
         from thread import get_ident
     except ImportError:
-        from dummy_thread import get_ident
+        from placeholder_thread import get_ident
 
 
 def recursive_repr(fillvalue='...'):
@@ -728,7 +728,7 @@ def count(start=0, step=1):
 ########################################################################
 ###  ChainMap (helper for configparser and string.Template)
 ###  From the Py3.4 source code. See also:
-###    https://github.com/kkxue/Py2ChainMap/blob/master/py2chainmap.py
+###    https://github.com/kkxue/Py2ChainMap/blob/primary/py2chainmap.py
 ########################################################################
 
 class ChainMap(MutableMapping):

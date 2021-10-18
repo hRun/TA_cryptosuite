@@ -14,7 +14,7 @@ if sys.version_info[0] < 3:
 else:
     py_version = "aob_py3"
 
-ta_name = 'TA-cryptosuite'
+ta_name = 'TA_cryptosuite'
 ta_lib_name = 'ta_cryptosuite'
 pattern = re.compile(r"[\\/]etc[\\/]apps[\\/][^\\/]+[\\/]bin[\\/]?$")
 new_paths = [path for path in sys.path if not pattern.search(path) or ta_name in path]

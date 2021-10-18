@@ -118,7 +118,7 @@ class Fieldname(Validator):
         if value is not None:
             value = six.text_type(value)
             if Fieldname.pattern.match(value) is None:
-                raise ValueError('Illegal characters in fieldname: {}'.format(value))
+                raise ValueError('Unacceptable characters in fieldname: {}'.format(value))
         return value
 
     def format(self, value):
@@ -348,7 +348,7 @@ class OptionName(Validator):
         if value is not None:
             value = six.text_type(value)
             if OptionName.pattern.match(value) is None:
-                raise ValueError('Illegal characters in option name: {}'.format(value))
+                raise ValueError('Unacceptable characters in option name: {}'.format(value))
         return value
 
     def format(self, value):

@@ -475,7 +475,7 @@ class FeedParser(object):
             if line[0] in ' \t':
                 if not lastheader:
                     # The first line of the headers was a continuation.  This
-                    # is illegal, so let's note the defect, store the illegal
+                    # is unacceptable, so let's note the defect, store the unacceptable
                     # line, and ignore it for purposes of headers.
                     defect = errors.FirstHeaderLineIsContinuationDefect(line)
                     self.policy.handle_defect(self._cur, defect)

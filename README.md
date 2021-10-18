@@ -1,4 +1,4 @@
-# TA-cryptosuite
+# TA_cryptosuite
 
 A Splunk® Add-On providing the custom search commands _cipher_, _crypt_, _encode_, and _hash_ for ciphering/deciphering, encrypting/decrypting, encoding/decoding and hashing fields and events at search time.
 
@@ -13,8 +13,9 @@ Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.2.1 and 8.1.
 
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
-* Authors: Harun Kuessner (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.2.2
+* Authors: Harun Kuessner
+* Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
+* Version: 2.2.3
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
@@ -96,7 +97,7 @@ Hash a raw event containing some malware threat artifact using sha256.
 
 ## Installation
 
-1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _TA-cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
+1. Just unpack to _$SPLUNK_HOME/etc/apps_ on your Splunk search head and restart the instance. Use the deployer in a distributed environment. Make sure, the app's folder name in _$SPLUNK_HOME/etc/apps_ is _TA_cryptosuite_ (Downloading apps from Github and uploading them to Splunk might result in different folder names).
 2. Assign the roles 'can_encrypt' and/or 'can_decrypt' to users/roles who should be able to encrypt/decrypt data using the _crypt_ command. The _cipher_, _hash_ and _encode_ commands will automatically be available to all users.
 3. Read and follow the requirements & configuration section below.
 4. Optional: Set _python.version=python2_ or _python.version=python3_ in _commands.conf_, _inputs.conf_ and _restmap.conf_ if you would like to explicitly specify the Python version to use. Otherwise this will be determined by your instance's global settings.
@@ -211,6 +212,10 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## History
 
+### v2.2.3
+
+* Fullfilling requirements for Splunk Cloud vetting (shoutout and thank you to Windu Sayles for the support)
+
 ### v2.2.2
 
 * Implemented support for Base58 and Base62 encoding/decoding
@@ -262,7 +267,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 * Removed keyencryption parameter from crypt command and replaced by automatic detection
 * Removed randpadding parameter and support for non-random padding
-* Implemented basic sanity checks for private/public RSA key usage during encryption/decryption attempts
+* Implemented basic review checks for private/public RSA key usage during encryption/decryption attempts
 * Implemented PKCS#1 v2 (OAEP) support
 * Implemented possibility for AES-128/192/256-CBC/OFB field/event encryption & decryption
 * AES-CBC and AES-OFB are now the only parameter values and modes for AES encryption/decryption

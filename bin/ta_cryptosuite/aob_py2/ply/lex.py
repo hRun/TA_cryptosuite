@@ -114,12 +114,12 @@ class NullLogger(object):
 
 class Lexer:
     def __init__(self):
-        self.lexre = None             # Master regular expression. This is a list of
+        self.lexre = None             # Primary regular expression. This is a list of
                                       # tuples (re, findex) where re is a compiled
                                       # regular expression and findex is a list
                                       # mapping regex group numbers to rules
         self.lexretext = None         # Current regular expression strings
-        self.lexstatere = {}          # Dictionary mapping lexer states to master regexs
+        self.lexstatere = {}          # Dictionary mapping lexer states to primary regexs
         self.lexstateretext = {}      # Dictionary mapping lexer states to regex strings
         self.lexstaterenames = {}     # Dictionary mapping lexer states to symbol names
         self.lexstate = 'INITIAL'     # Current lexer state
@@ -386,14 +386,14 @@ class Lexer:
                     newtok = self.lexerrorf(tok)
                     if lexpos == self.lexpos:
                         # Error method didn't change text position at all. This is an error.
-                        raise LexError("Scanning error. Illegal character '%s'" % (lexdata[lexpos]), lexdata[lexpos:])
+                        raise LexError("Scanning error. Unacceptable character '%s'" % (lexdata[lexpos]), lexdata[lexpos:])
                     lexpos = self.lexpos
                     if not newtok:
                         continue
                     return newtok
 
                 self.lexpos = lexpos
-                raise LexError("Illegal character '%s' at index %d" % (lexdata[lexpos], lexpos), lexdata[lexpos:])
+                raise LexError("Unacceptable character '%s' at index %d" % (lexdata[lexpos], lexpos), lexdata[lexpos:])
 
         if self.lexeoff:
             tok = LexToken()
@@ -484,13 +484,13 @@ def _names_to_funcs(namelist, fdict):
     return result
 
 # -----------------------------------------------------------------------------
-# _form_master_re()
+# _form_primary_re()
 #
 # This function takes a list of all of the regex components and attempts to
-# form the master regular expression.  Given limitations in the Python re
-# module, it may be necessary to break the master regex into separate expressions.
+# form the primary regular expression.  Given limitations in the Python re
+# module, it may be necessary to break the primary regex into separate expressions.
 # -----------------------------------------------------------------------------
-def _form_master_re(relist, reflags, ldict, toknames):
+def _form_primary_re(relist, reflags, ldict, toknames):
     if not relist:
         return []
     regex = '|'.join(relist)
@@ -518,8 +518,8 @@ def _form_master_re(relist, reflags, ldict, toknames):
         m = int(len(relist)/2)
         if m == 0:
             m = 1
-        llist, lre, lnames = _form_master_re(relist[:m], reflags, ldict, toknames)
-        rlist, rre, rnames = _form_master_re(relist[m:], reflags, ldict, toknames)
+        llist, lre, lnames = _form_primary_re(relist[:m], reflags, ldict, toknames)
+        rlist, rre, rnames = _form_primary_re(relist[m:], reflags, ldict, toknames)
         return (llist+rlist), (lre+rre), (lnames+rnames)
 
 # -----------------------------------------------------------------------------
@@ -942,7 +942,7 @@ def lex(module=None, object=None, debug=False, optimize=False, lextab='lextab',
     stateinfo = linfo.stateinfo
 
     regexs = {}
-    # Build the master regular expressions
+    # Build the primary regular expressions
     for state in stateinfo:
         regex_list = []
 
@@ -960,13 +960,13 @@ def lex(module=None, object=None, debug=False, optimize=False, lextab='lextab',
 
         regexs[state] = regex_list
 
-    # Build the master regular expressions
+    # Build the primary regular expressions
 
     if debug:
-        debuglog.info('lex: ==== MASTER REGEXS FOLLOW ====')
+        debuglog.info('lex: ==== PRIMARY REGEXS FOLLOW ====')
 
     for state in regexs:
-        lexre, re_text, re_names = _form_master_re(regexs[state], reflags, ldict, linfo.toknames)
+        lexre, re_text, re_names = _form_primary_re(regexs[state], reflags, ldict, linfo.toknames)
         lexobj.lexstatere[state] = lexre
         lexobj.lexstateretext[state] = re_text
         lexobj.lexstaterenames[state] = re_names

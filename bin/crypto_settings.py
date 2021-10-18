@@ -69,7 +69,7 @@ class ModInputcrypto_settings(modinput_wrapper.base_modinput.BaseModInput):
         return scheme
 
     def get_app_name(self):
-        return "TA-cryptosuite"
+        return "TA_cryptosuite"
 
     def validate_input(self, definition):
         """validate the input stanza"""

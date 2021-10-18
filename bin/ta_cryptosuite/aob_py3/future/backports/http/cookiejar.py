@@ -48,7 +48,7 @@ from future.backports.http.client import HTTP_PORT
 try:
     import threading as _threading
 except ImportError:
-    import dummy_threading as _threading
+    import placeholder_threading as _threading
 from calendar import timegm
 
 debug = False   # set to True to enable debugging via the logging module
@@ -982,7 +982,7 @@ class DefaultCookiePolicy(CookiePolicy):
         # servers that know both V0 and V1 protocols.
         if (cookie.version == 0 and self.strict_ns_set_initial_dollar and
             cookie.name.startswith("$")):
-            _debug("   illegal name (starts with '$'): '%s'", cookie.name)
+            _debug("   unacceptable name (starts with '$'): '%s'", cookie.name)
             return False
         return True
 

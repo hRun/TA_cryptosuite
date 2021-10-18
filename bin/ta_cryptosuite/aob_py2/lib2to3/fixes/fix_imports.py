@@ -32,7 +32,7 @@ MAPPING = {'StringIO':  'io',
            'markupbase': '_markupbase',
            '_winreg': 'winreg',
            'thread': '_thread',
-           'dummy_thread': '_dummy_thread',
+           'placeholder_thread': '_placeholder_thread',
            # anydbm and whichdb are handled by fix_imports2
            'dbhash': 'dbm.bsd',
            'dumbdbm': 'dbm.dumb',

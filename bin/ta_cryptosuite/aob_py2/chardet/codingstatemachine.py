@@ -47,7 +47,7 @@ class CodingStateMachine(object):
                sequence. This will to lead to an immediate positive answer for
                the detector.
 
-    ERROR state: This indicates the state machine identified an illegal byte
+    ERROR state: This indicates the state machine identified an unacceptable byte
                  sequence for that encoding. This will lead to an immediate
                  negative answer for this encoding. Detector will exclude this
                  encoding from consideration from here on.
