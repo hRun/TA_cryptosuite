@@ -15,8 +15,10 @@ from __future__ import print_function
 
 import base64
 import binascii
+import os
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
 
@@ -165,7 +167,7 @@ class cipherCommand(EventingCommand):
                 elif len(field.encode('utf-8')) < len(bytes.fromhex(key)):
                     key = bytes.fromhex(key)[0:len(field.encode('utf-8'))]
                 elif len(field.encode('utf-8')) > len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key) * (len(field.encode('utf-8'))%len(bytes.fromhex(key))) + bytes.fromhex(key)[0:len(field.encode('utf-8'))-len(bytes.fromhex(key) * (len(field.encode('utf-8'))%len(bytes.fromhex(key))))]
+                    key = (bytes.fromhex(key) * int((len(field.encode('utf-8'))+len(bytes.fromhex(key)))/len(bytes.fromhex(key))))[0:len(field.encode('utf-8'))]
                 return ''.join(['{:02x}'.format(m^k) for m, k in zip(field.encode('utf-8'), key)])
             else:
                 if len(binascii.unhexlify(key)) == 1:

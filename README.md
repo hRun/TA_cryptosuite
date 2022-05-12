@@ -4,17 +4,18 @@ A Splunk® Add-On providing the custom search commands _cipher_, _crypt_, _encod
 
 * Cipher/decipher fields or complete events during search time using RC4, ROT13, ROT47, XOR
 * Encrypt/decrypt fields or complete events during search time using RSA, AES-128/192/256-CBC or AES-128/192/256-OFB
-* Encode/decode fields or complete events during search time using Base32, Base64, Binary, Decimal, Hex, Octal
+* Encode/decode fields or complete events during search time using Base32, Base58, Base62, Base64, Binary, Decimal, Hex, Octal
 * Hash fields or complete events during search time using MD5, SHA1, SHA2 (224, 256, 384, 512), SHA3 (224, 256, 384, 512), Blake2
 * Manage access to encryption and decryption functionality on a per-user or per-role basis via two shipped roles
 * Manage usable encryption/decryption keys on a per-user or per-role basis via the app's configuration screen
 
-Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.2.1 and 8.1.1 on Windows and Linux (64-bit).
+Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 8.2.6 on Windows and Linux (64-bit).
 
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
-* Authors: Harun Kuessner, formerly also: Simon Balz, Mika Borner, Christoph Dittmann
-* Version: 2.2.1
+* Authors: Harun Kuessner
+* Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
+* Version: 2.3.0
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
@@ -45,7 +46,7 @@ Encryption results will be output base64 encoded. Decryption expects input field
 
 
 _encode_ command syntax: 
-*encode mode=<to|from> encoding=<base32|base64|base85|binary|decimal|hex|octal> \<field-list>*
+*encode mode=<to|from> encoding=<base32|base58|base62|base64|base85|binary|decimal|hex|octal> \<field-list>*
 
 _mode_: Mandatory. Set to _to_ for transforming to the specified encoding, set to _from_ to transform from the specified encoding.
 
@@ -199,17 +200,32 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## TODO / Roadmap / Known Issues
 
-### v2.3 plan
+### v2.4 plan
 
 * Better error handling
-* Increase performance
+* Improve performance
 * Add further ciphers (RC2, RC4-Drop, ...) and potentially arguments to control cipher parameters
-* Add further encodings (Base58, Base62, Punycode, ...) and potentially arguments to control encoding parameters
+* Add further encodings (Punycode, ...) and potentially arguments to control encoding parameters
 * Disable helper inputs by default
 * Potentially implement support for wildcards for field names
 
 
 ## History
+
+### v2.3.0
+
+* Re-packaged using Splunk Add-On Builder 4.1.0
+* Updated Splunk Python SDK to v1.6.19
+* Added salty comment about Splunk making life hard for developers
+
+### v2.2.3
+
+* Fullfilling requirements for Splunk Cloud vetting (shoutout and thank you to Windu Sayles for the support)
+* Updated Splunk Python SDK to v1.6.18
+
+### v2.2.2
+
+* Implemented support for Base58 and Base62 encoding/decoding
 
 ### v2.2.1
 
@@ -258,7 +274,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 * Removed keyencryption parameter from crypt command and replaced by automatic detection
 * Removed randpadding parameter and support for non-random padding
-* Implemented basic sanity checks for private/public RSA key usage during encryption/decryption attempts
+* Implemented basic review checks for private/public RSA key usage during encryption/decryption attempts
 * Implemented PKCS#1 v2 (OAEP) support
 * Implemented possibility for AES-128/192/256-CBC/OFB field/event encryption & decryption
 * AES-CBC and AES-OFB are now the only parameter values and modes for AES encryption/decryption
@@ -275,25 +291,27 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 The add-on relies on the Splunk Add-On builder[1], developed by Splunk and licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0.
 
-The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (https://stuvel.eu/) pure-Python RSA implementation [2] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. This module itself relies on Ilya Etingof's pyasn1 Python module [2.2] which is licensed under BSD 2-Clause.
-
-Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [2.3] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0 as well.
+The _crypt_ command uses a slightly modified version of Sybren A. Stuevel's (https://stuvel.eu/) pure-Python RSA implementation [2] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0. This module itself relies on Ilya Etingof's pyasn1 Python module [2.2] which is licensed under the BSD 2-Clause License, https://spdx.org/licenses/BSD-2-Clause.html. Changes include the PKCS#1 v2 (OAEP) support suggested and implemented by Inada Naoki (https://twitter.com/methane) [2.3] which is licensed under the Apache License, Version 2.0 http://www.apache.org/licenses/LICENSE-2.0 as well.
 
 The _crypt_ command also uses Richard Moore's (http://www.ricmoo.com/) pure-Python AES implementation [3] which is licensed under the MIT License, https://opensource.org/licenses/MIT.
 
 When including a system wide Python installation's package library, the add-on will make use of Python's "pycryptodomex" package [4] which is partially in the public domain and partially released under the BSD 2-Clause license https://www.pycryptodome.org/en/latest/src/license.html.
 
+The _encode_ command uses a pure-Python Base58 implementation based on David Keijser's code [5] which is licensed under the MIT License, https://opensource.org/licenses/MIT.
+
+The _encode_ command uses a pure-Python Base62 implementation based on Sumin Byeon's code [6] which is licensed under the BSD 2-Clause Simplified License, https://spdx.org/licenses/BSD-2-Clause.html.
+
 
 ## License
 
-**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [5]
+**This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.** [7]
 
 This roughly translates to 
 
 * You may freely use, share and adapt this work non-commercially as long as you give appropriate credit. When adapting or sharing, this needs to happen under the same license, changes should be indicated.
 * You may freely use this work in a commercial environment as long as the use is not primarily intended for commercial advantage or monetary compensation. YOU MAY NOT SELL THIS WORK. Neither standalone nor within an application bundle.
 
-As this paragraph is not a substitute for the license, please reffer to _References_ for completeness and correctness. 
+As this paragraph is not a substitute for the license, please refer to _References_ for completeness and correctness. 
 
 Feel free to contact me should you plan to use the add-on outside these terms.
 
@@ -314,4 +332,8 @@ Feel free to contact me should you plan to use the add-on outside these terms.
 
 [4] https://pypi.org/project/pycryptodomex/
 
-[5] http://creativecommons.org/licenses/by-nc-sa/4.0/
+[5] https://github.com/suminb/base62
+
+[6] https://github.com/keis/base58
+
+[7] http://creativecommons.org/licenses/by-nc-sa/4.0/

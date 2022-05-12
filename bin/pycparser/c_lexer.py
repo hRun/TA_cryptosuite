@@ -510,5 +510,5 @@ class CLexer(object):
         return t
 
     def t_error(self, t):
-        msg = 'Illegal character %s' % repr(t.value[0])
+        msg = 'Unacceptable character %s' % repr(t.value[0])
         self._error(msg, t)

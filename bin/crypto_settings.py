@@ -7,7 +7,7 @@ import datetime
 import json
 
 import modinput_wrapper.base_modinput
-from solnlib.packages.splunklib import modularinput as smi
+from splunklib import modularinput as smi
 
 
 
@@ -33,7 +33,7 @@ class ModInputcrypto_settings(modinput_wrapper.base_modinput.BaseModInput):
     def get_scheme(self):
         """overloaded splunklib modularinput method"""
         scheme = super(ModInputcrypto_settings, self).get_scheme()
-        scheme.title = ("Crypto Settings")
+        scheme.title = ("crypto_settings")
         scheme.description = ("Go to the add-on\'s configuration UI and configure modular inputs under the Inputs menu.")
         scheme.use_external_validation = True
         scheme.streaming_mode_xml = True
@@ -47,7 +47,7 @@ class ModInputcrypto_settings(modinput_wrapper.base_modinput.BaseModInput):
         For other input types, arguments should be get from input_module. Defining new input types could be easier.
         """
         scheme.add_argument(smi.Argument("type_of_data", title="Type of Data",
-                                         description="Select if you are uploading a new key file for encryption/decryption or a new salt file for hashing.",
+                                         description="Select if you are creating a new key file for encryption/decryption or a new salt file for hashing.",
                                          required_on_create=True,
                                          required_on_edit=False))
         scheme.add_argument(smi.Argument("key_salt", title="Key / Salt",

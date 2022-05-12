@@ -3,21 +3,26 @@
 """ 
     Implementation of the custom Splunk> search command "encode" used 
     for transforming fields during search time to or from an encoding:
-    Base32, Base64, Binary, Charcode, Decimal, Hex, Octal
+    Base32, Base58, Base62, Base64, Binary, Charcode, Decimal, Hex, Octal
     
     Author: Harun Kuessner
-    Version: 1.0
+    Version: 1.1
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
 from __future__ import absolute_import
 from __future__ import print_function
 
+from base58 import base58
+from base62 import base62
+
 import base64
 import binascii
+import os
 import string
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
 
@@ -26,7 +31,7 @@ class encodeCommand(EventingCommand):
     """ 
     ##Syntax
 
-    encode mode=(to|from) encoding=(base32|base64|base85|binary|charcode|decimal|hex|octal) <field-list>
+    encode mode=(to|from) encoding=(base32|base58|base62|base64|base85|binary|charcode|decimal|hex|octal) <field-list>
 
     ##Description
 
@@ -49,7 +54,7 @@ class encodeCommand(EventingCommand):
 
     encoding = Option(
         doc='''
-        **Syntax:** **encoding=***(base32|base64|base85|binary|charcode|decimal|hex|octal)*
+        **Syntax:** **encoding=***(base32|base58|base62|base64|base85|binary|charcode|decimal|hex|octal)*
         **Description:** transformation method to use''',
         require=True) 
 
@@ -64,6 +69,18 @@ class encodeCommand(EventingCommand):
             return base64.b32encode(field.encode('utf-8')).decode('utf-8')
         else:
             return base64.b32encode(field)
+
+    def to_base58(self, fieldname, field):
+        if self.py3:
+            return base58.b58encode(field.encode('utf-8')).decode('utf-8')
+        else:
+            return base58.b58encode(bytes(field))
+
+    def to_base62(self, fieldname, field):
+        if self.py3:
+            return base62.b62encode(field.encode('utf-8'))
+        else:
+            return base62.b62encode(bytes(field))
 
     def to_base64(self, fieldname, field):
         if self.py3:
@@ -103,6 +120,18 @@ class encodeCommand(EventingCommand):
             return ''.join([chr(c) if c in string.printable.encode('utf-8') else '\\{}'.format(str(hex(c))[1:]) for c in base64.b32decode(field.encode('utf-8'))])
         else:
             return ''.join([c if c in string.printable else '\\x{}'.format(hex(ord(c))[2:].zfill(2)) for c in base64.b32decode(field)])
+
+    def from_base58(self, fieldname, field):
+        if self.py3:
+            return ''.join([chr(c) if c in string.printable.encode('utf-8') else '\\{}'.format(str(hex(c))[1:]) for c in base58.b58decode(field.encode('utf-8'))])
+        else:
+            return ''.join([c if c in string.printable else '\\x{}'.format(hex(ord(c))[2:].zfill(2)) for c in base58.b58decode(field)])
+
+    def from_base62(self, fieldname, field):
+        if self.py3:
+            return ''.join([chr(c) if c in string.printable.encode('utf-8') else '\\{}'.format(str(hex(c))[1:]) for c in base62.b62decode(field)])
+        else:
+            return ''.join([c if c in string.printable else '\\x{}'.format(hex(ord(c))[2:].zfill(2)) for c in base62.b62decode(field)])
 
     def from_base64(self, fieldname, field):
         if self.py3:
@@ -151,16 +180,16 @@ class encodeCommand(EventingCommand):
     def transform(self, events):
         # Set encoding method
         if not self.py3 and self.encoding == 'base85':
-            raise RuntimeError('Base85 encoding is not yet supported when running Splunk on Python2.')
+            raise NotImplementedError('Base85 encoding is not yet supported when running Splunk on Python2.')
 
         if self.mode == 'to':
-            if self.encoding in ['base32', 'base64', 'base85', 'binary', 'decimal', 'hex', 'octal']:
+            if self.encoding in ['base32', 'base58', 'base62', 'base64', 'base85', 'binary', 'decimal', 'hex', 'octal']:
                 _encode = getattr(self, 'to_{}'.format(self.encoding))
             else:
                 raise ValueError('Invalid encoding method "{0}" specified.'.format(self.encoding))
 
         elif self.mode == 'from':
-            if self.encoding in ['base32', 'base64', 'base85', 'binary', 'decimal', 'hex', 'octal']:
+            if self.encoding in ['base32', 'base58', 'base62', 'base64', 'base85', 'binary', 'decimal', 'hex', 'octal']:
                 _encode = getattr(self, 'from_{}'.format(self.encoding))
             else:
                 raise ValueError('Invalid encoding method "{0}" specified.'.format(self.encoding))
@@ -181,3 +210,4 @@ class encodeCommand(EventingCommand):
             yield event
 
 dispatch(encodeCommand, sys.argv, sys.stdin, sys.stdout, __name__)
+

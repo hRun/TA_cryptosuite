@@ -66,7 +66,7 @@ def collect_events(helper, ew):
     account = helper.get_user_credential_by_username("username")
     account = helper.get_user_credential_by_id("account id")
     # get global variable configuration
-    global_userdefined_global_var = helper.get_global_setting("userdefined_global_var")
+    global_site_packages = helper.get_global_setting("site_packages")
 
     # The following examples show usage of logging related helper functions.
     # write to the log for this modular input using configured global log level or INFO as default

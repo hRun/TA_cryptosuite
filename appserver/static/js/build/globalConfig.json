@@ -1,16 +1,53 @@
 {
     "meta": {
         "name": "TA-cryptosuite",
-        "displayName": "Crypto & Encoding Add-On",
-        "version": "2.2.1",
-        "apiVersion": "3.0.0",
-        "restRoot": "TA_cryptosuite"
+        "displayName": "Crypto and Encoding Add-On",
+        "version": "2.3.0",
+        "restRoot": "TA_cryptosuite",
+        "schemaVersion": "0.0.3"
     },
     "pages": {
         "configuration": {
             "title": "Configuration",
             "description": "Set up your add-on",
             "tabs": [
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "field": "loglevel",
+                            "label": "Log level",
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG",
+                                        "value": "DEBUG"
+                                    },
+                                    {
+                                        "label": "INFO",
+                                        "value": "INFO"
+                                    },
+                                    {
+                                        "label": "WARNING",
+                                        "value": "WARNING"
+                                    },
+                                    {
+                                        "label": "ERROR",
+                                        "value": "ERROR"
+                                    },
+                                    {
+                                        "label": "CRITICAL",
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO"
+                        }
+                    ]
+                },
                 {
                     "name": "additional_parameters",
                     "title": "Add-on Settings",
@@ -19,7 +56,7 @@
                             "field": "site_packages",
                             "label": "Python site-packages location",
                             "type": "text",
-                            "help": "This parameter is optional and only required if usage of encrypted private RSA keys needs to be supported. If specified, the crypt command will attempt to import the \"pycryptodomex\" package from here ",
+                            "help": "This parameter is optional and only required if usage of encrypted private RSA keys needs to be supported. If specified, the crypt command will attempt to import the \"pycryptodomex\" package from here.",
                             "required": false,
                             "defaultValue": "",
                             "validators": [
@@ -94,13 +131,13 @@
             "services": [
                 {
                     "name": "crypto_settings",
-                    "title": "Crypto Settings",
+                    "title": "crypto_settings",
                     "entity": [
                         {
                             "field": "name",
                             "label": "Name",
                             "type": "text",
-                            "help": "Enter the unique name you want your key/salt to have",
+                            "help": "Enter a unique name for the data input",
                             "required": true,
                             "validators": [
                                 {
