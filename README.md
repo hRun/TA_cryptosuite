@@ -15,7 +15,7 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner
 * Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.3.0
+* Version: 2.3.2
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
@@ -69,7 +69,7 @@ For security purposes the whole search will fail if the hash operation fails on 
 
 XOR the field "message" with byte "\\x2f".
 
-&nbsp;&nbsp;&nbsp;_search sourcetype="ctf" | cipher algorithm=xor key="2f" message | table \_time alice, bob, message_
+&nbsp;&nbsp;&nbsp;_search sourcetype="ctf" | cipher mode=e algorithm=xor key="2f" message | table \_time alice, bob, message_
 
 
 Decode the hex contents of "payload" and display readable ascii values in a table.
@@ -211,6 +211,14 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 
 ## History
+
+### v2.3.2
+
+* Ensured future cloud compatibility (again)
+
+### v2.3.1
+
+* Ensured future cloud compatibility
 
 ### v2.3.0
 
