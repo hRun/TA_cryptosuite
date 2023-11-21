@@ -1,10 +1,10 @@
-The RSA key-pairs in this folder have been created for the purpose of testing using OpenSSL.
+The RSA key-pairs and AES key in this folder have been created for the purpose of testing using OpenSSL.
 Feel free to use them further on for testing but don't use them in a productive environment,
 since the private key files are available publicly via downloads of this app.
 
-When generating your own key pairs note that
+When generating your own RSA key pairs note that
   1. The key-pairs have to be stored as valid, separate PEM files.
-  2. Using 1024 bit keys is considered unsafe and therefore forbidden in SA-hypercrypto.
+  2. Using 1024 bit keys is considered unsafe and therefore forbidden in TA-cryptosuite.
   3. The key files may be placed anywhere but the user you are running Splunk as 
      needs read access to these files for the crypt command to run successfully.
   4. Currently only AES-CBC-256, DES-CBC and DED-EDE3-CBC are supported as algorithms 
@@ -16,7 +16,7 @@ When generating your own key pairs note that
            the search would make it visible in the _internal index.
 
 
-Examples for key generation as used for generating the test key-pairs:
+Examples for key generation as used for generating the RSA test key-pairs:
 
   openssl genrsa -out private.pem 1024
   openssl rsa -in private.pem -outform PEM -RSAPublicKey_out -out public.pem
@@ -29,3 +29,14 @@ Examples for key generation as used for generating the test key-pairs:
   openssl genrsa -des -passout pass:1234567890abcdef -out private_des.pem 2048
   openssl rsa -in private_des.pem -outform PEM -RSAPublicKey_out -out public_des.pem
   openssl rsa -in private_des.pem -outform DER -out public_des.der
+
+
+When generating your own AES key and IV note that
+  1. To configure AES key and IV in the app, put your key and IV in UTF-8 into a plain ASCII file. Key has to go on line 1 and IV on line 2. Copy-paste the content into the app's respective configuration field.
+  2. Alternatively to creating a key and IV using OpenSSL or similar you can also simply write them in plaintext.
+  3. For security purposes 256 bit keys are recommended unless performance is important.
+
+
+Examples for key generation as used for generating the AES test key and IV:
+
+  openssl enc -aes-256-cbc -k secret -P -md sha1

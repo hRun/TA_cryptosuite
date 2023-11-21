@@ -15,23 +15,11 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner
 * Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.3.2
+* Version: 2.3.3
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
 ## Usage
-
-_cipher_ command syntax: 
-*cipher mode=<d|e> algorithm=<rc4|rot13|rot47|xor> key=<key> \<field-list>*
-
-_mode_: Mandatory. Set to _e_ to cipher, set to _d_ to decipher the given field list using the provided key.
-
-_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for ciphering/deciphering.
-
-_key_: Mandatory. Specify the key to use. Requirements vary depending on the chosen algorithm.
-
-Cipher results will be output as hex strings (except ROT results where output is ascii). Deciphering (except ROT operations) expects input fields to be hex strings, results will be output in ascii. If the cipher operation fails on a single field or event, this field/event will be skipped and returned as is.
-
 
 _crypt_ command syntax: 
 *crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<key_name> \<field-list>*
@@ -63,6 +51,18 @@ _algorithm_: Mandatory. Set to the hashing algorithm you would like to use. SHA3
 _saltfile_: Optional. Set to the name of a key you (or your admin) configured previously.
 
 For security purposes the whole search will fail if the hash operation fails on a single field or event. See _Requirements & Configuration_ for salt setup.
+
+
+_cipher_ command syntax: 
+*cipher mode=<d|e> algorithm=<rc4|rot13|rot47|xor> key=<key> \<field-list>*
+
+_mode_: Mandatory. Set to _e_ to cipher, set to _d_ to decipher the given field list using the provided key.
+
+_algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for ciphering/deciphering.
+
+_key_: Mandatory. Specify the key to use. Requirements vary depending on the chosen algorithm.
+
+Cipher results will be output as hex strings (except ROT results where output is ascii). Deciphering (except ROT operations) expects input fields to be hex strings, results will be output in ascii. If the cipher operation fails on a single field or event, this field/event will be skipped and returned as is.
 
 
 ### Examples
@@ -125,7 +125,9 @@ In order for the _crypt_ command of this add-on to be fully usable you'll need t
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Example "key file" creation for AES:
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Put your key and IV in UTF-8 into a plain ASCII file. Key has to go on line 1 and IV on line 2.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Put your key and IV into a plain ASCII file. Key has to go on line 1 and IV on line 2. They can either be just self-written plaintext strings, or hex-representations as output by e.g. OpenSSL:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_openssl enc [-aes-256-cbc|-aes-256-cfb] -k secret -P -md sha1_
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The IV's length has to be 16 bytes/characters. The key's length has to be 16/24/32 bytes/characters respectively for 128/192/256 AES encryption. For security purposes 256 bit keys are recommended unless performance is important.
 
@@ -211,6 +213,11 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 
 ## History
+
+### v2.3.3
+
+* Fixed a bug where a wrong key might accidentally be used
+* Added support for hex-formatted AES keys/IVs
 
 ### v2.3.2
 

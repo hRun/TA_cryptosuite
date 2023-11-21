@@ -5,7 +5,7 @@
     for encrypting and decrypting fields during search time using RSA or AES.
     
     Author: Harun Kuessner
-    Version: 2.1
+    Version: 2.3.3
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
@@ -120,8 +120,8 @@ class cryptCommand(EventingCommand):
     ## Helper to load keys and run basic review checks
     #
     def load_key(self, service):
-        stored_key = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.key))
-        key_dict   = ''.join([chunk.clear_password if 'data/inputs/crypto_settings:{0}'.format(self.key) in chunk.name else '' for chunk in stored_key])
+        stored_keys = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.key))
+        key_dict   = ''.join([chunk.clear_password if 'data/inputs/crypto_settings:{0}`'.format(self.key) in chunk.name else '' for chunk in stored_keys])
 
         if not key_dict.startswith('{'):
             key_dict = json.loads(''.join(key_dict.split('``splunk_cred_sep``', 1)[::-1]).split('``splunk_cred_sep``')[-1])
@@ -187,7 +187,18 @@ class cryptCommand(EventingCommand):
             key_dict['key_salt'].strip(' \r\n')
 
             try:
-                if len(key_dict['key_salt']) in [48, 49, 50]:
+                # hex
+                if len(key_dict['key_salt']) in [96, 97, 98]:
+                    key = bytes.fromhex(key_dict['key_salt'][0:64])
+                    iv  = bytes.fromhex(key_dict['key_salt'][-32::])
+                elif len(key_dict['key_salt']) in [80, 81, 82]:
+                    key = bytes.fromhex(key_dict['key_salt'][0:48])
+                    iv  = bytes.fromhex(key_dict['key_salt'][-32::])
+                elif len(key_dict['key_salt']) in [64, 65, 66]:
+                    key = bytes.fromhex(key_dict['key_salt'][0:32])
+                    iv  = bytes.fromhex(key_dict['key_salt'][-32::])
+                # plaintext
+                elif len(key_dict['key_salt']) in [48, 49, 50]:
                     key = key_dict['key_salt'][0:32]
                     iv  = key_dict['key_salt'][-16::]
                 elif len(key_dict['key_salt']) in [40, 41, 42]:
@@ -250,14 +261,19 @@ class cryptCommand(EventingCommand):
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
     def aes_encrypt(self, fieldname, field, key, iv):
+        if type(key) == str:
+            key = key.encode('utf-8')
+        if type(iv) == str:
+            iv = iv.encode('utf-8')
+
         # AES-CBC
         if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
             try:
                 if self.module:
-                    cipher      = AES.new(key.encode('utf-8'), AES.MODE_CBC, iv.encode('utf-8'))
+                    cipher      = AES.new(key, AES.MODE_CBC, iv)
                     cipher_text = cipher.encrypt(pad(field.encode('utf-8'), AES.block_size))
                 else:
-                    encryptor    = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
+                    encryptor    = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key, iv=iv))
                     cipher_text  = encryptor.feed(field.encode('utf-8'))
                     cipher_text += encryptor.feed()
                 return base64.encodestring(cipher_text).decode('utf-8')
@@ -268,11 +284,11 @@ class cryptCommand(EventingCommand):
         elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
             try:
                 if self.module:
-                    cipher      = AES.new(key.encode('utf-8'), AES.MODE_OFB, iv.encode('utf-8'))
+                    cipher      = AES.new(key, AES.MODE_OFB, iv)
                     cipher_text = cipher.encrypt(field.encode('utf-8'))
                     return base64.encodestring(cipher_text).decode('utf-8')
                 else:
-                    aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
+                    aes = pyaes.AESModeOfOperationOFB(key, iv=iv)
                     return base64.encodestring(aes.encrypt(field.encode('utf-8'))).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
@@ -281,14 +297,19 @@ class cryptCommand(EventingCommand):
             raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
     def aes_decrypt(self, fieldname, field, key, iv):
+        if type(key) == str:
+            key = key.encode('utf-8')
+        if type(iv) == str:
+            iv = iv.encode('utf-8')
+
         # AES-CBC
         if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
             try:
                 if self.module:
-                    cipher      = AES.new(key.encode('utf-8'), AES.MODE_CBC, iv.encode('utf-8'))
+                    cipher      = AES.new(key, AES.MODE_CBC, iv)
                     plain_text  = unpad(cipher.decrypt(base64.decodestring(field.encode('utf-8'))), AES.block_size)
                 else:
-                    decryptor   = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key.encode('utf-8'), iv=iv.encode('utf-8')))
+                    decryptor   = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key, iv=iv))
                     plain_text  = decryptor.feed(base64.decodestring(field.encode('utf-8')))
                     plain_text += decryptor.feed()
                 return plain_text.decode('utf-8')
@@ -299,11 +320,11 @@ class cryptCommand(EventingCommand):
         elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
             try:
                 if self.module:
-                    cipher      = AES.new(key.encode('utf-8'), AES.MODE_OFB, iv.encode('utf-8'))
+                    cipher      = AES.new(key, AES.MODE_OFB, iv)
                     plain_text  = cipher.decrypt(base64.decodestring(field.encode('utf-8')))
                     return plain_text.decode('utf-8')
                 else:
-                    aes = pyaes.AESModeOfOperationOFB(key.encode('utf-8'), iv=iv.encode('utf-8'))
+                    aes = pyaes.AESModeOfOperationOFB(key, iv=iv)
                     return aes.decrypt(base64.decodestring(field.encode('utf-8'))).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
@@ -396,3 +417,4 @@ class cryptCommand(EventingCommand):
             raise ValueError('Invalid mode "{0}" used. Allowed values are "e" and "d".'.format(self.mode))
 
 dispatch(cryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)
+
