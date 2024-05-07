@@ -15,7 +15,7 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner
 * Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.3.3
+* Version: 2.3.4
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
@@ -202,6 +202,8 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## TODO / Roadmap / Known Issues
 
+* Update to Splunk Python SDK v2.x (currently has bugs)
+
 ### v2.4 plan
 
 * Better error handling
@@ -214,29 +216,18 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## History
 
+### v2.3.4
+
+* Ensured future cloud compatibility (again)
+
 ### v2.3.3
 
 * Fixed a bug where a wrong key might accidentally be used
 * Added support for hex-formatted AES keys/IVs
 
-### v2.3.2
-
-* Ensured future cloud compatibility (again)
-
-### v2.3.1
+### v2.2.3 - v2.3.2
 
 * Ensured future cloud compatibility
-
-### v2.3.0
-
-* Re-packaged using Splunk Add-On Builder 4.1.0
-* Updated Splunk Python SDK to v1.6.19
-* Added salty comment about Splunk making life hard for developers
-
-### v2.2.3
-
-* Fullfilling requirements for Splunk Cloud vetting (shoutout and thank you to Windu Sayles for the support)
-* Updated Splunk Python SDK to v1.6.18
 
 ### v2.2.2
 
