@@ -5,9 +5,10 @@
     for encrypting and decrypting fields during search time using RSA or AES.
     
     Author: Harun Kuessner
-    Version: 2.3.3
+    Version: 2.4.0
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
+
 
 from __future__ import absolute_import
 from __future__ import print_function
@@ -18,8 +19,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
+
 import splunklib.client as client
 from splunklib.searchcommands import dispatch, EventingCommand, Configuration, Option, validators
+
 
 
 
@@ -61,7 +64,6 @@ class cryptCommand(EventingCommand):
     """
 
 
-
     mode = Option(
         doc='''
         **Syntax:** **mode=***(d|e)*
@@ -81,11 +83,13 @@ class cryptCommand(EventingCommand):
         require=True)
 
     module = False # Flag for pycryptodomex usage
+    py3    = True if sys.version_info >= (3, 9) else False
 
 
-    ## Helper to check if a user is privileged to do what they are trying to do
-    #
     def validate_user(self, service):
+        """
+        Helper to check if a user is privileged to do what they are trying to do
+        """
         user, roles, auth_users, auth_roles = self._metadata.searchinfo.username, [], [], []
 
         try:
@@ -116,10 +120,10 @@ class cryptCommand(EventingCommand):
         return False
 
 
-
-    ## Helper to load keys and run basic review checks
-    #
     def load_key(self, service):
+        """
+        Helper to load keys and run basic review checks
+        """
         stored_keys = service.storage_passwords.list(count=-1, search='data/inputs/crypto_settings:'.format(self.key))
         key_dict   = ''.join([chunk.clear_password if 'data/inputs/crypto_settings:{0}`'.format(self.key) in chunk.name else '' for chunk in stored_keys])
 
@@ -166,13 +170,13 @@ class cryptCommand(EventingCommand):
                     elif 'DEK-Info:' in key_dict['key_salt'] and self.module:
                         key = ' '.join(key_dict['key_salt'].split(' ')[0:4]) + '\n' + ' '.join(key_dict['key_salt'].split(' ')[4:6]) + '\n' + ' '.join(key_dict['key_salt'].split(' ')[6:8]) + '\n\n'
                         for i in range(0, len(''.join(key_dict['key_salt'].split('-----')[2].split(' ')[5::])), 64):
-                            key +='{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2].split(' ')[5::])[i:i+64])
+                            key += '{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2].split(' ')[5::])[i:i+64])
                         key += "-----END RSA PRIVATE KEY-----"
                         return RSA.import_key(key.encode('utf-8'), passphrase=key_dict['rsa_key_encryption_password'].encode('utf-8')), None
                     else:
                         key = "-----BEGIN RSA PRIVATE KEY-----\n"
                         for i in range(0, len(''.join(key_dict['key_salt'].split('-----')[2])), 64):
-                            key +='{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2])[i:i+64])
+                            key += '{}\n'.format(''.join(key_dict['key_salt'].split('-----')[2])[i:i+64])
                         key += "-----END RSA PRIVATE KEY-----"
                         if self.module:
                             return RSA.import_key(key.encode('utf-8')), None
@@ -217,26 +221,39 @@ class cryptCommand(EventingCommand):
             raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
 
-
-    ## Helpers for encryption and decryption
-    #
-    def rsa_encrypt(self, fieldname, field, key, iv=None): 
+    def rsa_encrypt(self, fieldname, field, key, iv=None):
+        """
+        Helpers for encryption and decryption
+        """
         # Split fields bigger than 214 bytes
         if len(field) > 214:
             try:
                 if self.module:
-                    return ''.join([base64.encodestring(PKCS1_OAEP.new(key).encrypt(field[i:i+214].encode('utf-8'))).decode('utf-8') for i in range(0, len(field), 214)])
+                    if self.py3:
+                        return ''.join([base64.encodebytes(PKCS1_OAEP.new(key).encrypt(field[i:i+214].encode('utf-8'))).decode('utf-8') for i in range(0, len(field), 214)])
+                    else:
+                        return ''.join([base64.encodestring(PKCS1_OAEP.new(key).encrypt(field[i:i+214].encode('utf-8'))).decode('utf-8') for i in range(0, len(field), 214)])
                 else:
-                    return ''.join([base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8') for i in range(0, len(field), 214)])
+                    if self.py3:
+                        return ''.join([base64.encodebytes(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8') for i in range(0, len(field), 214)])
+                    else:
+                        return ''.join([base64.encodestring(rsa.OAEP_encrypt(field[i:i+214].encode('utf-8'), key)).decode('utf-8') for i in range(0, len(field), 214)])
             except Exception as e:
-                    raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
+                raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
         # Otherwise encrypt straight forward
         else:
             try:
                 if self.module:
-                    return base64.encodestring(PKCS1_OAEP.new(key).encrypt(field.encode('utf-8'))).decode('utf-8')
+                    if self.py3:
+                        return base64.encodebytes(PKCS1_OAEP.new(key).encrypt(field.encode('utf-8'))).decode('utf-8')
+                    else:
+                        return base64.encodestring(PKCS1_OAEP.new(key).encrypt(field.encode('utf-8'))).decode('utf-8')
+
                 else:
-                    return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
+                    if self.py3:
+                        return base64.encodebytes(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
+                    else:
+                        return base64.encodestring(rsa.OAEP_encrypt(field.encode('utf-8'), key)).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))   
 
@@ -245,18 +262,30 @@ class cryptCommand(EventingCommand):
         if len(field.replace('\n', '')) > 344:
             try:
                 if self.module:
-                    return ''.join([PKCS1_OAEP.new(key).decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8'))).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+                    if self.py3:
+                        return ''.join([PKCS1_OAEP.new(key).decrypt(base64.decodebytes(''.join([chunk.replace('\n', ''), '==']).encode('utf-8'))).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+                    else:
+                        return ''.join([PKCS1_OAEP.new(key).decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8'))).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
                 else:
-                    return ''.join([rsa.OAEP_decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), key).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+                    if self.py3:
+                        return ''.join([rsa.OAEP_decrypt(base64.decodebytes(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), key).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
+                    else:
+                        return ''.join([rsa.OAEP_decrypt(base64.decodestring(''.join([chunk.replace('\n', ''), '==']).encode('utf-8')), key).decode('utf-8') for chunk in field.split('==') if len(chunk)>1])
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
         # Otherwise decrypt straight forward
         else:
             try:
                 if self.module:
-                    return PKCS1_OAEP.new(key).decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8'))).decode('utf-8')
+                    if self.py3:
+                        return PKCS1_OAEP.new(key).decrypt(base64.decodebytes(field.replace('\n', '').encode('utf-8'))).decode('utf-8')
+                    else:
+                        return PKCS1_OAEP.new(key).decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8'))).decode('utf-8')
                 else:
-                    return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
+                    if self.py3:
+                        return rsa.OAEP_decrypt(base64.decodebytes(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
+                    else:
+                        return rsa.OAEP_decrypt(base64.decodestring(field.replace('\n', '').encode('utf-8')), key).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -276,7 +305,11 @@ class cryptCommand(EventingCommand):
                     encryptor    = pyaes.Encrypter(pyaes.AESModeOfOperationCBC(key, iv=iv))
                     cipher_text  = encryptor.feed(field.encode('utf-8'))
                     cipher_text += encryptor.feed()
-                return base64.encodestring(cipher_text).decode('utf-8')
+
+                if self.py3:
+                    return base64.encodebytes(cipher_text).decode('utf-8')
+                else:
+                    return base64.encodestring(cipher_text).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -286,10 +319,18 @@ class cryptCommand(EventingCommand):
                 if self.module:
                     cipher      = AES.new(key, AES.MODE_OFB, iv)
                     cipher_text = cipher.encrypt(field.encode('utf-8'))
-                    return base64.encodestring(cipher_text).decode('utf-8')
+
+                    if self.py3:
+                        return base64.encodebytes(cipher_text).decode('utf-8')
+                    else:
+                        return base64.encodestring(cipher_text).decode('utf-8')
                 else:
                     aes = pyaes.AESModeOfOperationOFB(key, iv=iv)
-                    return base64.encodestring(aes.encrypt(field.encode('utf-8'))).decode('utf-8')
+
+                    if self.py3:
+                        return base64.encodebytes(aes.encrypt(field.encode('utf-8'))).decode('utf-8')
+                    else:
+                        return base64.encodestring(aes.encrypt(field.encode('utf-8'))).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Encryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -306,11 +347,19 @@ class cryptCommand(EventingCommand):
         if self.algorithm in ['aes-cbc', 'aes-128-cbc', 'aes-192-cbc', 'aes-256-cbc']:
             try:
                 if self.module:
-                    cipher      = AES.new(key, AES.MODE_CBC, iv)
-                    plain_text  = unpad(cipher.decrypt(base64.decodestring(field.encode('utf-8'))), AES.block_size)
+                    cipher = AES.new(key, AES.MODE_CBC, iv)
+
+                    if self.py3:
+                        plain_text = unpad(cipher.decrypt(base64.decodebytes(field.encode('utf-8'))), AES.block_size)
+                    else:
+                        plain_text = unpad(cipher.decrypt(base64.decodestring(field.encode('utf-8'))), AES.block_size)
                 else:
-                    decryptor   = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key, iv=iv))
-                    plain_text  = decryptor.feed(base64.decodestring(field.encode('utf-8')))
+                    decryptor = pyaes.Decrypter(pyaes.AESModeOfOperationCBC(key, iv=iv))
+
+                    if self.py3:
+                        plain_text = decryptor.feed(base64.decodebytes(field.encode('utf-8')))
+                    else:
+                        plain_text = decryptor.feed(base64.decodestring(field.encode('utf-8')))
                     plain_text += decryptor.feed()
                 return plain_text.decode('utf-8')
             except Exception as e:
@@ -320,12 +369,20 @@ class cryptCommand(EventingCommand):
         elif self.algorithm in ['aes-ofb', 'aes-128-ofb', 'aes-192-ofb', 'aes-256-ofb']:
             try:
                 if self.module:
-                    cipher      = AES.new(key, AES.MODE_OFB, iv)
-                    plain_text  = cipher.decrypt(base64.decodestring(field.encode('utf-8')))
+                    cipher = AES.new(key, AES.MODE_OFB, iv)
+
+                    if self.py3:
+                        plain_text = cipher.decrypt(base64.decodebytes(field.encode('utf-8')))
+                    else:
+                        plain_text = cipher.decrypt(base64.decodestring(field.encode('utf-8')))
                     return plain_text.decode('utf-8')
                 else:
                     aes = pyaes.AESModeOfOperationOFB(key, iv=iv)
-                    return aes.decrypt(base64.decodestring(field.encode('utf-8'))).decode('utf-8')
+
+                    if self.py3:
+                        return aes.decrypt(base64.decodebytes(field.encode('utf-8'))).decode('utf-8')
+                    else:
+                        return aes.decrypt(base64.decodestring(field.encode('utf-8'))).decode('utf-8')
             except Exception as e:
                 raise RuntimeWarning('Decryption failed for field "{0}". Reason: {1}'.format(fieldname, e))
 
@@ -333,9 +390,6 @@ class cryptCommand(EventingCommand):
             raise ValueError('Invalid or unsupported algorithm specified: {0}.'.format(self.algorithm))
 
 
-
-    ## Sort of "__main__"
-    #
     def transform(self, events):     
         # Bind to Splunk session and initialize variables
         service = client.Service(token=self.metadata.searchinfo.session_key)
@@ -343,7 +397,7 @@ class cryptCommand(EventingCommand):
         # Check if configuration exists for specified key
         try:
             service.confs['inputs']['crypto_settings://{0}'.format(self.key)]
-        except:
+        except Exception:
             raise ValueError('Specified key file "{0}" does not exist. Please check the spelling of your specified key name or your configured keys.'.format(self.key))
 
         # Configuration agnostic imports
@@ -354,14 +408,13 @@ class cryptCommand(EventingCommand):
             from Cryptodome.PublicKey import RSA
             from Cryptodome.Util.Padding import pad, unpad
             self.module = True
-        except:
+        except Exception:
             global pyaes, rsa
             import pyaes
             import rsa
             self.module = False
 
         # ENCRYPTION
-        #
         if self.mode == 'e':
             # Continue if user is authorized for encryption and key usage
             if self.validate_user(service):
@@ -388,7 +441,6 @@ class cryptCommand(EventingCommand):
                 raise RuntimeWarning('User "{0}" is not authorized to use the specified encryption key.'.format(self._metadata.searchinfo.username))
 
         # DECRYPTION
-        #
         elif self.mode == 'd':
             # Continue if user is authorized for decryption and key usage
             if self.validate_user(service):
@@ -416,5 +468,5 @@ class cryptCommand(EventingCommand):
         else:
             raise ValueError('Invalid mode "{0}" used. Allowed values are "e" and "d".'.format(self.mode))
 
-dispatch(cryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)
 
+dispatch(cryptCommand, sys.argv, sys.stdin, sys.stdout, __name__)

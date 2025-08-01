@@ -9,13 +9,13 @@ A Splunk® Add-On providing the custom search commands _cipher_, _crypt_, _encod
 * Manage access to encryption and decryption functionality on a per-user or per-role basis via two shipped roles
 * Manage usable encryption/decryption keys on a per-user or per-role basis via the app's configuration screen
 
-Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 9.x on Windows and Linux (64-bit).
+Cross-compatible with Python 2 and 3. Tested on Splunk Enterprise 10.0 on Windows and Linux (64-bit).
 
 Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner
 * Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.4.0
+* Version: 2.4.2
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
@@ -212,7 +212,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 ## History
 
-### v2.2.3 - v2.4.0
+### v2.2.3 - v2.4.x
 
 * Ensured future cloud compatibility
 * Updated Splunk Python SDK
