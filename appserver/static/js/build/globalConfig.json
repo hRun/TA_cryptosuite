@@ -2,9 +2,10 @@
     "meta": {
         "name": "TA-cryptosuite",
         "displayName": "Crypto and Encoding Add-On",
-        "version": "2.4.2",
+        "version": "2.4.4",
         "restRoot": "TA_cryptosuite",
-        "schemaVersion": "0.0.3"
+        "schemaVersion": "0.0.8",
+        "_uccVersion": "5.48.0"
     },
     "pages": {
         "configuration": {
