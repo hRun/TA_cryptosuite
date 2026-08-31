@@ -15,20 +15,24 @@ Licensed under http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 * Authors: Harun Kuessner
 * Contributors: Windu Sayles, (formerly also: Simon Balz, Mika Borner, Christoph Dittmann)
-* Version: 2.4.4
+* Version: 2.5.0
 * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License [5]
 
 
 ## Usage
 
 _crypt_ command syntax: 
-*crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<key_name> \<field-list>*
+*crypt mode=<d|e> algorithm=<rsa|aes-cbc|aes-ofb> key=<key_name> [ivfield=\<field>] [ivextract=\<field>] \<field-list>*
 
 _mode_: Mandatory. Set to _e_ to encrypt, set to _d_ to decrypt the given field list using the provided key.
 
 _algorithm_: Mandatory. Set to the cryptographic algorithm you would like to use for encryption/decryption.
 
 _key_: Mandatory. Set to the name of a key you (or your admin) configured previously.
+
+_ivfield_: Optional (AES only). Name of a field that holds the AES IV (hex, base64, or 16 raw bytes). Takes precedence over a configured key-file IV. Mutually exclusive with _ivextract_.
+
+_ivextract_: Optional (AES only). Name of a field whose base64-decoded value starts with a 16-byte AES IV prepended to the ciphertext (e.g. Vector `base64(IV || ciphertext)`). On decrypt of that field the IV is stripped and the remainder is decrypted; on encrypt of that field a random IV is generated and prepended. Takes precedence over a configured key-file IV. Mutually exclusive with _ivfield_.
 
 Encryption results will be output base64 encoded. Decryption expects input fields to be base64 encoded, results will be output in ascii. For security purposes the whole search will fail if the crypto operation fails on a single field or event. See _Requirements & Configuration_ for key setup.
 
@@ -89,6 +93,14 @@ Decrypt the content of the already RSA encrypted and summary-indexed field "user
 
 &nbsp;&nbsp;&nbsp;_search index=summary sourcetype="server::access" | crypt mode=d algorithm=rsa key=private.pem username | table \_time action username_
 
+Decrypt a Vector-style AES-256-CBC payload where a per-message IV is prepended to the ciphertext before Base64 encoding. The configured key may contain only the static secret (no IV).
+
+&nbsp;&nbsp;&nbsp;_search sourcetype="vector" | crypt mode=d algorithm=aes-cbc key=vector_key ivextract=payload payload_
+
+Decrypt AES ciphertext using an IV stored in a separate event field.
+
+&nbsp;&nbsp;&nbsp;_search sourcetype="app" | crypt mode=d algorithm=aes-cbc key=vector_key ivfield=iv payload_
+
 
 Hash a raw event containing some malware threat artifact using sha256.
 
@@ -130,6 +142,8 @@ In order for the _crypt_ command of this add-on to be fully usable you'll need t
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_openssl enc [-aes-256-cbc|-aes-256-cfb] -k secret -P -md sha1_
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The IV's length has to be 16 bytes/characters. The key's length has to be 16/24/32 bytes/characters respectively for 128/192/256 AES encryption. For security purposes 256 bit keys are recommended unless performance is important.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;When using _ivfield_ or _ivextract_ at search time, the key file may contain **only the key** (no IV). A configured IV in the key file is ignored if either of those options is present.
 
 
 2. Go to the app's configuration dashboard in your preferred browser. Click "Create New Input".
@@ -200,7 +214,7 @@ You can argue this way or that. My assumption is that only high-privileged users
 * SHA3 and Blake2 are only available when using Python3 as your environment's interpreter.
 
 
-### v2.5 plan
+### v2.6 plan
 
 * Better error handling
 * Improve performance
@@ -211,6 +225,12 @@ You can argue this way or that. My assumption is that only high-privileged users
 
 
 ## History
+
+### v2.5.0
+
+* Added optional _ivfield_ and _ivextract_ arguments to _crypt_ for per-event AES IVs (field-provided or prepended to base64 ciphertext)
+* AES key files may contain key-only material when using dynamic IV options
+* Dropped Python 2 compatibility
 
 ### v2.2.3 - v2.4.x
 
