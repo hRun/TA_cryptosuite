@@ -6,15 +6,10 @@
     which are generally regarded as cryptographically insecure: RC4, ROT-13, ROT-47, XOR
     
     Author: Harun Kuessner
-    Version: 1.0
+    Version: 1.1
     License: http://creativecommons.org/licenses/by-nc-sa/4.0/
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
-
-import base64
-import binascii
 import os
 import sys
 
@@ -74,8 +69,6 @@ class cipherCommand(EventingCommand):
         **Description:** ascii representation of the key to use''',
         require=True)
 
-    py3 = True if sys.version_info >= (3, 0) else False
-
 
 
     ## Helpers for ciphering and deciphering
@@ -87,7 +80,7 @@ class cipherCommand(EventingCommand):
             for c in key:
                 if c not in '0123456789abcdef':
                     raise ValueError()
-            key = bytes.fromhex(key) if self.py3 else [ord(k) for k in binascii.unhexlify(key)]
+            key = bytes.fromhex(key)
         except ValueError:
             raise ValueError('Value for "key" must be a valid hex string (no delimiters) between 1 and 256 bytes length for RC4 operations! E.g. "41", "01ea4f".')
 
@@ -105,9 +98,9 @@ class cipherCommand(EventingCommand):
                 i          = (i + 1) % 256
                 j          = (j + S[i]) % 256
                 S[i], S[j] = S[j], S[i]
-                c         += '{:02x}'.format(p ^ S[(S[i] + S[j]) % 256]) if self.py3 else '{}'.format(hex(ord(p) ^ S[(S[i] + S[j]) % 256])[2:].zfill(2))
+                c         += f'{(p ^ S[(S[i] + S[j]) % 256]):02x}'
             return c
-        except:
+        except Exception:
             return field
 
     def rot13_encrypt(self, fieldname, field, key):
@@ -127,7 +120,7 @@ class cipherCommand(EventingCommand):
                 else: # Skip characters outside the ASCII ranges
                     cipher.append(field[i])
             return ''.join(cipher)
-        except:
+        except Exception:
             return field
 
     def rot47_encrypt(self, fieldname, field, key):
@@ -145,7 +138,7 @@ class cipherCommand(EventingCommand):
                 else: # Skip characters outside the ASCII range
                     cipher.append(field[i])
             return ''.join(cipher)
-        except:
+        except Exception:
             return field
 
     def xor_encrypt(self, fieldname, field, key):
@@ -159,27 +152,16 @@ class cipherCommand(EventingCommand):
             raise ValueError('Value for "key" must be a valid hex string (no delimiters) for XOR operations! E.g. "41", "01ea4f".')
 
         try:
-            if self.py3:
-                if len(bytes.fromhex(key)) == 1:
-                    key = bytes.fromhex(key) * len(field.encode('utf-8'))
-                elif len(field.encode('utf-8')) == len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key)
-                elif len(field.encode('utf-8')) < len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key)[0:len(field.encode('utf-8'))]
-                elif len(field.encode('utf-8')) > len(bytes.fromhex(key)):
-                    key = (bytes.fromhex(key) * int((len(field.encode('utf-8'))+len(bytes.fromhex(key)))/len(bytes.fromhex(key))))[0:len(field.encode('utf-8'))]
-                return ''.join(['{:02x}'.format(m^k) for m, k in zip(field.encode('utf-8'), key)])
-            else:
-                if len(binascii.unhexlify(key)) == 1:
-                    key = binascii.unhexlify(key) * len(field.encode('utf-8'))
-                elif len(field.encode('utf-8')) == len(binascii.unhexlify(key)):
-                    key = binascii.unhexlify(key)
-                elif len(field.encode('utf-8')) < len(binascii.unhexlify(key)):
-                    key = binascii.unhexlify(key)[0:len(field.encode('utf-8'))]
-                elif len(field.encode('utf-8')) > len(binascii.unhexlify(key)):
-                    key = binascii.unhexlify(key) * (len(field.encode('utf-8'))%len(binascii.unhexlify(key))) + binascii.unhexlify(key)[0:len(field.encode('utf-8'))-len(binascii.unhexlify(key) * (len(field.encode('utf-8'))%len(binascii.unhexlify(key))))]
-                return ''.join(['{}'.format(hex(ord(m)^ord(k)))[2:].zfill(2) for m, k in zip(field, key)])
-        except:
+            if len(bytes.fromhex(key)) == 1:
+                key = bytes.fromhex(key) * len(field.encode('utf-8'))
+            elif len(field.encode('utf-8')) == len(bytes.fromhex(key)):
+                key = bytes.fromhex(key)
+            elif len(field.encode('utf-8')) < len(bytes.fromhex(key)):
+                key = bytes.fromhex(key)[0:len(field.encode('utf-8'))]
+            elif len(field.encode('utf-8')) > len(bytes.fromhex(key)):
+                key = (bytes.fromhex(key) * int((len(field.encode('utf-8'))+len(bytes.fromhex(key)))/len(bytes.fromhex(key))))[0:len(field.encode('utf-8'))]
+            return ''.join([f'{(m ^ k):02x}' for m, k in zip(field.encode('utf-8'), key)])
+        except Exception:
             return field
 
     def rc4_decrypt(self, fieldname, field, key):
@@ -189,7 +171,7 @@ class cipherCommand(EventingCommand):
             for c in key:
                 if c not in '0123456789abcdef':
                     raise ValueError()
-            key = bytes.fromhex(key) if self.py3 else [ord(k) for k in binascii.unhexlify(key)]
+            key = bytes.fromhex(key)
         except ValueError:
             raise ValueError('Value for "key" must be a valid hex string (no delimiters) between 1 and 256 bytes length for RC4 operations! E.g. "41", "01ea4f".')
 
@@ -199,7 +181,7 @@ class cipherCommand(EventingCommand):
             for c in field:
                 if c not in '0123456789abcdef':
                     raise ValueError()
-            field = bytes.fromhex(field) if self.py3 else binascii.unhexlify(field)
+            field = bytes.fromhex(field)
         except ValueError:
             #raise ValueError('Field values must be valid hex strings (no delimiters) for RC4 decryption! E.g. "41", "01ea4f". Please use RC4 encryption otherwise.')
             return field
@@ -218,10 +200,10 @@ class cipherCommand(EventingCommand):
                 i          = (i + 1) % 256
                 j          = (j + S[i]) % 256
                 S[i], S[j] = S[j], S[i]
-                c         += bytes.fromhex('{:02x}'.format(p ^ S[(S[i] + S[j]) % 256])).decode('utf-8') if self.py3 else '{}'.format(chr(ord(p) ^ S[(S[i] + S[j]) % 256]))
+                c         += bytes.fromhex(f'{(p ^ S[(S[i] + S[j]) % 256]):02x}').decode('utf-8')
             return c
-        except:
-            return field.hex() if self.py3 else binascii.hexlify(field)
+        except Exception:
+            return field.hex()
 
     def rot13_decrypt(self, fieldname, field, key):
         try:
@@ -240,7 +222,7 @@ class cipherCommand(EventingCommand):
                 else: # Skip characters outside the ASCII ranges
                     cipher.append(field[i])
             return ''.join(cipher)
-        except:
+        except Exception:
             return field
 
     def rot47_decrypt(self, fieldname, field, key):
@@ -258,7 +240,7 @@ class cipherCommand(EventingCommand):
                 else: # Skip characters outside the ASCII range
                     cipher.append(field[i])
             return ''.join(cipher)
-        except:
+        except Exception:
             return field
 
     def xor_decrypt(self, fieldname, field, key):
@@ -277,34 +259,23 @@ class cipherCommand(EventingCommand):
             for c in field:
                 if c not in '0123456789abcdef':
                     raise ValueError()
-            field = bytes.fromhex(field) if self.py3 else binascii.unhexlify(field)
+            field = bytes.fromhex(field)
         except ValueError:
             #raise ValueError('Field values must be valid hex strings (no delimiters) for XOR decryption! E.g. "41", "01ea4f". Please use XOR encryption otherwise.')
             return field
 
         try:
-            if self.py3:
-                if len(bytes.fromhex(key)) == 1:
-                    key = bytes.fromhex(key) * len(field)
-                elif len(field) == len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key)
-                elif len(field) < len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key)[0:len(field)]
-                elif len(field) > len(bytes.fromhex(key)):
-                    key = bytes.fromhex(key) * (len(field)%len(bytes.fromhex(key))) + bytes.fromhex(key)[0:len(field)-len(bytes.fromhex(key) * (len(field)%len(bytes.fromhex(key))))]
-                return bytes.fromhex(''.join(['{:02x}'.format(m^k) for m, k in zip(field, key)])).decode('utf-8')
-            else:
-                if len(binascii.unhexlify(key)) == 1:
-                    key = binascii.unhexlify(key) * len(field)
-                elif len(field) == len(binascii.unhexlify(key)):
-                    key = binascii.unhexlify(key)
-                elif len(field) < len(binascii.unhexlify(key)):
-                    key = binascii.unhexlify(key)[0:len(field)]
-                elif len(field) > len(binascii.unhexlify(key)):
-                    key = binascii.unhexlify(key) * (len(field)%len(binascii.unhexlify(key))) + binascii.unhexlify(key)[0:len(field)-len(binascii.unhexlify(key) * (len(field)%len(binascii.unhexlify(key))))]
-                return ''.join(['{}'.format(chr(ord(m)^ord(k))) for m, k in zip(field, key)])
-        except:
-            return field.hex() if self.py3 else binascii.hexlify(field)
+            if len(bytes.fromhex(key)) == 1:
+                key = bytes.fromhex(key) * len(field)
+            elif len(field) == len(bytes.fromhex(key)):
+                key = bytes.fromhex(key)
+            elif len(field) < len(bytes.fromhex(key)):
+                key = bytes.fromhex(key)[0:len(field)]
+            elif len(field) > len(bytes.fromhex(key)):
+                key = bytes.fromhex(key) * (len(field)%len(bytes.fromhex(key))) + bytes.fromhex(key)[0:len(field)-len(bytes.fromhex(key) * (len(field)%len(bytes.fromhex(key))))]
+            return bytes.fromhex(''.join([f'{(m ^ k):02x}' for m, k in zip(field, key)])).decode('utf-8')
+        except Exception:
+            return field.hex()
 
 
 
@@ -314,17 +285,17 @@ class cipherCommand(EventingCommand):
         # Set cipher algorithm
         if self.mode == 'e':
             if self.algorithm in ['rc4', 'rot13', 'rot47', 'xor']:
-                _cipher = getattr(self, '{}_encrypt'.format(self.algorithm))
+                _cipher = getattr(self, f'{self.algorithm}_encrypt')
             else:
-                raise ValueError('Invalid or unsupported algorithm specified: "{0}".'.format(self.algorithm))
+                raise ValueError(f'Invalid or unsupported algorithm specified: "{self.algorithm}".')
 
         elif self.mode == 'd':
             if self.algorithm in ['rc4', 'rot13', 'rot47', 'xor']:
-                _cipher = getattr(self, '{}_decrypt'.format(self.algorithm))
+                _cipher = getattr(self, f'{self.algorithm}_decrypt')
             else:
-                raise ValueError('Invalid or unsupported algorithm specified: "{0}".'.format(self.algorithm))
+                raise ValueError(f'Invalid or unsupported algorithm specified: "{self.algorithm}".')
         else:
-            raise ValueError('Invalid mode "{0}" used. Allowed values are "e" and "d".'.format(self.mode))
+            raise ValueError(f'Invalid mode "{self.mode}" used. Allowed values are "e" and "d".')
 
         # CIPHER or DECIPHER
         #
